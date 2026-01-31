@@ -128,13 +128,33 @@ export const Plants = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {plants.map((plant) => {
                         const age = plant.start_date ? Math.floor((new Date().getTime() - new Date(plant.start_date).getTime()) / (1000 * 60 * 60 * 24)) : 0;
-                        // Mock progress based on phase (simplified)
-                        let progress = 0;
-                        if (plant.phase === 'GERMINATION') progress = 10;
-                        else if (plant.phase === 'VEGETATIVE') progress = 40;
-                        else if (plant.phase === 'FLOWERING') progress = 75;
-                        else if (plant.phase === 'DRYING') progress = 90;
-                        else if (plant.phase === 'CURED') progress = 100;
+                        // Dynamic Progress Calculation
+                        const calculateProgress = () => {
+                            if (plant.phase === 'FINISHED' || plant.phase === 'CURED') return 100;
+                            if (plant.phase === 'DRYING') return 95;
+
+                            // Autoflowers have a somewhat fixed lifecycle (approx 90-100 days)
+                            if (plant.plant_type === 'AUTOFLOWER') {
+                                return Math.min(100, Math.round((age / 90) * 100)); // Assumes 90 day cycle
+                            }
+
+                            // Photoperiods depend heavily on the phase
+                            switch (plant.phase) {
+                                case 'GERMINATION':
+                                    // Assumes 2 weeks max for germination phase
+                                    return Math.min(10, Math.round((age / 14) * 10));
+                                case 'VEGETATIVE':
+                                    // Assumes approx 2 months veg (very variable, but good baseline)
+                                    // Starts at 10%, adds up to 40% more
+                                    return Math.min(50, 10 + Math.round(((age - 14) / 60) * 40));
+                                case 'FLOWERING':
+                                    // Starts at 50%, adds up to 40% more over approx 9-10 weeks
+                                    return Math.min(90, 50 + Math.round(((age - 74) / 70) * 40));
+                                default:
+                                    return 0;
+                            }
+                        };
+                        const progress = Math.max(0, calculateProgress());
 
                         return (
                             <Link to={`/plants/${plant.id}`} key={plant.id} className="bg-white overflow-hidden rounded-2xl shadow-sm border border-slate-100 hover:shadow-lg transition-all duration-300 group flex flex-col hover:-translate-y-1 relative">
