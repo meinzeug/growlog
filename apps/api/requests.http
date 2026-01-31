@@ -1,0 +1,81 @@
+### Auth
+# @name register
+POST http://localhost:15100/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "Password123!"
+}
+
+###
+# @name login
+POST http://localhost:15100/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "Password123!"
+}
+
+> {%
+client.global.set("token", response.body.token);
+%}
+
+###
+# @name loginAdmin
+POST http://localhost:15100/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "password": "Admin_1234!"
+}
+
+> {%
+client.global.set("adminToken", response.body.token);
+%}
+
+###
+# @name me
+GET http://localhost:15100/api/auth/me
+Authorization: Bearer {{token}}
+
+### Grows
+# @name createGrow
+POST http://localhost:15100/api/grows
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "My First Grow",
+  "location_type": "INDOOR",
+  "notes": "Starting fresh"
+}
+
+> {%
+client.global.set("growId", response.body.id);
+%}
+
+###
+# @name getGrows
+GET http://localhost:15100/api/grows
+Authorization: Bearer {{token}}
+
+### Plants
+# @name createPlant
+POST http://localhost:15100/api/plants
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "grow_id": "{{growId}}",
+  "name": "Northern Lights",
+  "strain": "Indica",
+  "start_date": "2024-01-01"
+}
+
+### Admin
+# @name listUsers
+GET http://localhost:15100/api/admin/users
+Authorization: Bearer {{adminToken}}
