@@ -19,7 +19,37 @@ const createEnvironmentSchema = z.object({
     light_schedule: z.string().optional(),
     temperature_target: z.number().optional(),
     humidity_target: z.number().optional(),
+    co2_target: z.number().optional(),
     notes: z.string().optional()
+});
+
+const updateEnvironmentSchema = createEnvironmentSchema.partial();
+
+// ... existing code ...
+
+router.patch('/environments/:id', authenticateToken, async (req: Request, res: Response) => {
+    const userId = (req as AuthRequest).user?.id!;
+
+    // Verify ownership via Grow
+    const env = await prisma.environment.findUnique({
+        where: { id: req.params.id },
+        include: { grow: true }
+    });
+
+    if (!env || env.grow.owner_user_id !== userId) {
+        return res.status(404).json({ error: 'Environment not found' });
+    }
+
+    try {
+        const data = updateEnvironmentSchema.parse(req.body);
+        const updated = await prisma.environment.update({
+            where: { id: req.params.id },
+            data
+        });
+        res.json(updated);
+    } catch (e) {
+        res.status(400).json({ error: 'Invalid input' });
+    }
 });
 
 // Middleware to ensure user owns the grow

@@ -252,8 +252,12 @@ router.get('/plants/:id/metrics', authenticateToken, async (req: Request, res: R
 
 router.post('/plants/:id/metrics', authenticateToken, async (req: Request, res: Response) => {
     const userId = (req as AuthRequest).user?.id!;
+    console.log(`[Metrics] POST /plants/${req.params.id}/metrics from user ${userId}`);
     const plant = await prisma.plant.count({ where: { id: req.params.id, owner_user_id: userId as string } });
-    if (!plant) return res.status(404).json({ error: 'Plant not found' });
+    if (!plant) {
+        console.log('[Metrics] Plant not found or not owned');
+        return res.status(404).json({ error: 'Plant not found' });
+    }
 
     try {
         const { height_cm, ph, ec, temperature_c, humidity_pct, notes, recorded_at } = req.body;

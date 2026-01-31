@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../lib/api';
-import { Plus, Trash2, Sprout } from 'lucide-react';
+import { Plus, Trash2, Sprout, Thermometer, Droplets, Calendar, Home, Sun, Activity, Wind } from 'lucide-react';
 import { Modal } from '../components/ui/Modal';
 import { Input, Select } from '../components/ui/Form';
 import { useForm } from 'react-hook-form';
@@ -9,10 +10,6 @@ import { z } from 'zod';
 import clsx from 'clsx';
 
 // Shared types (ideally import from @growlog/shared)
-const GrowLocationType = {
-    INDOOR: 'INDOOR',
-    OUTDOOR: 'OUTDOOR'
-} as const;
 
 const schema = z.object({
     name: z.string().min(1, 'Name is required'),
@@ -89,53 +86,224 @@ export const Grows = () => {
                 </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {grows.map((grow) => (
-                    <div key={grow.id} className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow group relative">
-                        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                                onClick={() => deleteGrow(grow.id)}
-                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
-                                title="Delete Grow"
-                            >
-                                <Trash2 size={18} />
-                            </button>
-                        </div>
-
-                        <div className="flex items-start justify-between mb-4">
-                            <div className="p-3 bg-green-50 text-green-600 rounded-lg">
-                                <Sprout size={24} />
-                            </div>
-                            <span className={clsx(
-                                "text-xs font-bold px-2 py-1 rounded-full uppercase tracking-wider",
-                                grow.location_type === 'INDOOR' ? "bg-purple-50 text-purple-600" : "bg-orange-50 text-orange-600"
-                            )}>
-                                {grow.location_type}
-                            </span>
-                        </div>
-
-                        <h3 className="text-xl font-bold text-slate-900 mb-2">{grow.name}</h3>
-
-                        <div className="space-y-2 mb-4">
-                            <div className="flex justify-between text-sm">
-                                <span className="text-slate-500">Plants</span>
-                                <span className="font-medium text-slate-900">{grow.plants?.length || 0}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                                <span className="text-slate-500">Created</span>
-                                <span className="font-medium text-slate-900">
-                                    {new Date(grow.created_at).toLocaleDateString()}
-                                </span>
-                            </div>
-                        </div>
-
-                        {grow.notes && (
-                            <p className="text-slate-500 text-sm line-clamp-2 border-t border-slate-50 pt-3">
-                                {grow.notes}
-                            </p>
-                        )}
+            {/* Dashboard Headers */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between h-28">
+                    <div className="flex justify-between items-start">
+                        <span className="text-slate-500 font-medium text-xs uppercase tracking-wider">Total Plants</span>
+                        <Sprout size={18} className="text-green-500" />
                     </div>
-                ))}
+                    <div className="flex items-baseline gap-2">
+                        <span className="text-3xl font-bold text-slate-900">{grows.reduce((acc, g) => acc + (g.plants?.length || 0), 0)}</span>
+                        <span className="text-xs text-green-600 font-bold bg-green-50 px-1.5 py-0.5 rounded-md">+4 this week</span>
+                    </div>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between h-28">
+                    <div className="flex justify-between items-start">
+                        <span className="text-slate-500 font-medium text-xs uppercase tracking-wider">Avg Temp</span>
+                        <Thermometer size={18} className="text-orange-500" />
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                        <span className="text-3xl font-bold text-slate-900">24°C</span>
+                        <span className="text-xs text-slate-400">Daytime</span>
+                    </div>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between h-28">
+                    <div className="flex justify-between items-start">
+                        <span className="text-slate-500 font-medium text-xs uppercase tracking-wider">Avg Humidity</span>
+                        <Droplets size={18} className="text-blue-500" />
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                        <span className="text-3xl font-bold text-slate-900">55%</span>
+                        <span className="text-xs text-slate-400">RH</span>
+                    </div>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between h-28">
+                    <div className="flex justify-between items-start">
+                        <span className="text-slate-500 font-medium text-xs uppercase tracking-wider">Harvest Est.</span>
+                        <Calendar size={18} className="text-purple-500" />
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                        <span className="text-3xl font-bold text-slate-900">12 Days</span>
+                        <span className="text-xs text-slate-400">Next Crop</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Grows List */}
+            <div className="space-y-6">
+                {grows.map((grow) => {
+                    const plantCount = grow.plants?.length || 0;
+
+                    // Real Yield Estimation (Sum of plant estimates)
+                    const estimatedYield = grow.plants?.reduce((sum: number, p: any) => sum + (p.estimated_yield_grams || 0), 0) || 0;
+
+                    // Real Progress based on Plant Phases
+                    const phaseWeights: Record<string, number> = {
+                        'GERMINATION': 10,
+                        'VEGETATIVE': 40,
+                        'FLOWERING': 70,
+                        'DRYING': 90,
+                        'CURED': 95,
+                        'FINISHED': 100
+                    };
+                    const totalPhaseScore = grow.plants?.reduce((sum: number, p: any) => sum + (phaseWeights[p.phase] || 0), 0) || 0;
+                    const progress = plantCount > 0 ? totalPhaseScore / plantCount : 0;
+
+                    const primaryEnv = grow.environments?.[0];
+
+                    const updateEnv = async (field: string, val: string) => {
+                        if (!primaryEnv) return;
+                        try {
+                            await api.patch(`/environments/${primaryEnv.id}`, { [field]: parseFloat(val) });
+                        } catch (e) { console.error(e); }
+                    };
+
+                    return (
+                        <div key={grow.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 hover:shadow-md transition-shadow">
+                            <div className="flex flex-col lg:flex-row gap-8">
+
+                                {/* Left Section: Info & Main Stats */}
+                                <div className="flex-1">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div className="flex items-center gap-4">
+                                            <div className={clsx(
+                                                "w-12 h-12 rounded-xl flex items-center justify-center",
+                                                grow.location_type === 'INDOOR' ? "bg-purple-50 text-purple-600" : "bg-orange-50 text-orange-600"
+                                            )}>
+                                                {grow.location_type === 'INDOOR' ? <Home size={24} /> : <Sun size={24} />}
+                                            </div>
+                                            <div>
+                                                <h3 className="text-xl font-bold text-slate-900">{grow.name}</h3>
+                                                <div className="flex items-center gap-2 text-sm text-slate-500">
+                                                    <span>{grow.location_type}</span>
+                                                    <span>•</span>
+                                                    <span>Started {new Date(grow.created_at).toLocaleDateString()}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                deleteGrow(grow.id);
+                                            }}
+                                            className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                                            title="Delete Grow"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
+                                    </div>
+
+                                    <div className="grid grid-cols-3 gap-4 mb-6">
+                                        <div className="bg-slate-50 p-3 rounded-lg">
+                                            <span className="block text-xs text-slate-500 uppercase font-bold mb-1">Plants</span>
+                                            <span className="text-lg font-bold text-slate-800">{plantCount}</span>
+                                        </div>
+                                        <div className="bg-slate-50 p-3 rounded-lg">
+                                            <span className="block text-xs text-slate-500 uppercase font-bold mb-1">Est. Yield</span>
+                                            <span className="text-lg font-bold text-slate-800">{estimatedYield > 0 ? `~${estimatedYield}g` : '-'}</span>
+                                        </div>
+                                        <div className="bg-slate-50 p-3 rounded-lg">
+                                            <span className="block text-xs text-slate-500 uppercase font-bold mb-1">Stage</span>
+                                            <span className="text-lg font-bold text-slate-800">
+                                                {progress < 20 ? 'Early' : progress < 60 ? 'Veg' : 'Flower'}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Timeline Progress */}
+                                    <div className="mb-2">
+                                        <div className="flex justify-between text-xs font-bold text-slate-500 mb-2">
+                                            <span className={progress < 25 ? 'text-green-600' : ''}>Germination</span>
+                                            <span className={progress >= 25 && progress < 50 ? 'text-green-600' : ''}>Veg</span>
+                                            <span className={progress >= 50 && progress < 90 ? 'text-green-600' : ''}>Flower</span>
+                                            <span className={progress >= 90 ? 'text-green-600' : ''}>Harvest</span>
+                                        </div>
+                                        <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden relative">
+                                            <div className="absolute top-0 bottom-0 left-0 bg-green-500 rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Right Section: Environment & Tools */}
+                                <div className="lg:w-80 border-t lg:border-t-0 lg:border-l border-slate-100 pt-6 lg:pt-0 lg:pl-8 flex flex-col">
+                                    <h4 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
+                                        <Activity size={16} className="text-slate-400" />
+                                        Environment (Target)
+                                    </h4>
+
+                                    {primaryEnv ? (
+                                        <div className="space-y-3 mb-6">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2 text-sm text-slate-600">
+                                                    <Thermometer size={16} className="text-slate-400" />
+                                                    <span>Temp</span>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <input
+                                                        type="number"
+                                                        defaultValue={primaryEnv.temperature_target || ''}
+                                                        onBlur={(e) => updateEnv('temperature_target', e.target.value)}
+                                                        className="w-12 text-right font-bold text-slate-900 border-b border-slate-200 outline-none focus:border-green-500 bg-transparent text-sm"
+                                                    />
+                                                    <span className="text-xs text-slate-400">°C</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2 text-sm text-slate-600">
+                                                    <Droplets size={16} className="text-slate-400" />
+                                                    <span>Humidity</span>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <input
+                                                        type="number"
+                                                        defaultValue={primaryEnv.humidity_target || ''}
+                                                        onBlur={(e) => updateEnv('humidity_target', e.target.value)}
+                                                        className="w-12 text-right font-bold text-slate-900 border-b border-slate-200 outline-none focus:border-green-500 bg-transparent text-sm"
+                                                    />
+                                                    <span className="text-xs text-slate-400">%</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2 text-sm text-slate-600">
+                                                    <Wind size={16} className="text-slate-400" />
+                                                    <span>CO2</span>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <input
+                                                        type="number"
+                                                        defaultValue={primaryEnv.co2_target || ''}
+                                                        placeholder="-"
+                                                        onBlur={(e) => updateEnv('co2_target', e.target.value)}
+                                                        className="w-12 text-right font-bold text-slate-900 border-b border-slate-200 outline-none focus:border-green-500 bg-transparent text-sm"
+                                                    />
+                                                    <span className="text-xs text-slate-400">ppm</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="mb-6 text-sm text-slate-400 italic">No environment configured.</div>
+                                    )}
+
+                                    <div className="mt-auto space-y-2">
+                                        <button className="w-full py-2 bg-blue-50 text-blue-600 font-bold text-sm rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center gap-2">
+                                            <Droplets size={16} />
+                                            <span>Log Watering</span>
+                                        </button>
+                                        <Link to={`/grows/${grow.id}`} className="w-full py-2 border border-slate-200 text-slate-600 font-bold text-sm rounded-lg hover:border-green-500 hover:text-green-600 transition-colors flex items-center justify-center gap-2">
+                                            View Details
+                                        </Link>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                })}
+
                 {grows.length === 0 && (
                     <div className="col-span-full flex flex-col items-center justify-center py-16 text-slate-500 bg-white rounded-xl border-2 border-dashed border-slate-200">
                         <Sprout size={48} className="text-slate-300 mb-4" />

@@ -82,7 +82,7 @@ export const Reports = () => {
                                         paddingAngle={5}
                                         dataKey="value"
                                     >
-                                        {statusData.map((entry, index) => (
+                                        {statusData.map((_, index) => (
                                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                         ))}
                                     </Pie>
@@ -111,6 +111,28 @@ export const Reports = () => {
                             </ResponsiveContainer>
                         ) : (
                             <div className="h-full flex items-center justify-center text-slate-400">No data available</div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Task Completion Chart */}
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 md:col-span-2">
+                    <h3 className="text-lg font-bold text-slate-900 mb-4">Task Completion</h3>
+                    <div className="h-[300px]">
+                        {data?.tasks?.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={[
+                                    { name: 'Completed', value: data.tasks.filter((t: any) => t.status === 'DONE').length },
+                                    { name: 'Pending', value: data.tasks.filter((t: any) => t.status !== 'DONE').length },
+                                ]} layout="vertical">
+                                    <XAxis type="number" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                                    <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} width={100} />
+                                    <Tooltip cursor={{ fill: '#f1f5f9' }} />
+                                    <Bar dataKey="value" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={20} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="h-full flex items-center justify-center text-slate-400">No tasks data available</div>
                         )}
                     </div>
                 </div>

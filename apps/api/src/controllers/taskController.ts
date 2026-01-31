@@ -15,7 +15,8 @@ const createTaskSchema = z.object({
     due_at: z.string(), // ISO date
     repeat_rule: z.string().optional(),
     notify: z.boolean().optional(),
-    notify_before_minutes: z.number().optional()
+    notify_before_minutes: z.number().optional(),
+    priority: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional()
 });
 
 router.get('/tasks', authenticateToken, async (req: Request, res: Response) => {
@@ -78,7 +79,39 @@ router.post('/tasks/:id/complete', authenticateToken, async (req: Request, res: 
         data: { status: 'DONE' }
     });
 
-    // Logic for repeating tasks would go here (create next task)
+    // Handle Recurrence
+    if (task.repeat_rule) {
+        let nextDate = new Date(task.due_at);
+        const rule = task.repeat_rule.toUpperCase();
+
+        // Logic: Add interval to the ORIGINAL due date to keep cadence.
+        if (rule === 'DAILY') nextDate.setDate(nextDate.getDate() + 1);
+        else if (rule === 'WEEKLY') nextDate.setDate(nextDate.getDate() + 7);
+        else if (rule === 'EVERY_3_DAYS') nextDate.setDate(nextDate.getDate() + 3);
+        else if (rule === 'MONTHLY') nextDate.setMonth(nextDate.getMonth() + 1);
+
+        // If the calculated next date is in the past (e.g. missed task), 
+        // should we skip to the future? For now, let's keep strict cadence 
+        // but ensure we don't create duplicates if user spans click spam.
+        // Actually, simple valid check:
+        // Use max(now, nextDate)? No, strict cadence is better for growing schedules.
+
+        await prisma.task.create({
+            data: {
+                owner_user_id: userId as string,
+                grow_id: task.grow_id,
+                plant_id: task.plant_id,
+                title: task.title,
+                description: task.description,
+                due_at: nextDate,
+                repeat_rule: task.repeat_rule,
+                notify: task.notify,
+                notify_before_minutes: task.notify_before_minutes,
+                priority: task.priority,
+                status: 'OPEN'
+            }
+        });
+    }
 
     res.json(updated);
 });

@@ -13,5 +13,8 @@ export default defineConfig({
   server: {
     port: 15000,
     host: true
+  },
+  optimizeDeps: {
+    include: ['@growlog/shared']
   }
 })

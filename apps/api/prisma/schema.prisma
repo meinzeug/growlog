@@ -68,8 +68,15 @@ enum LeafLogType {
 
 enum TaskStatus {
   OPEN
+  IN_PROGRESS
   DONE
   SKIPPED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
 }
 
 model User {
@@ -111,6 +118,7 @@ model Environment {
   light_schedule     String? // e.g. "18/6"
   temperature_target Float?
   humidity_target    Float?
+  co2_target         Float?
   notes              String?
 
   grow   Grow    @relation(fields: [grow_id], references: [id])
@@ -130,6 +138,7 @@ model Plant {
   phase          PlantPhase    @default(GERMINATION)
   phase_started_at DateTime?   @db.Date
   status         PlantStatus   @default(HEALTHY)
+  estimated_yield_grams Float?
   notes          String?
   created_at     DateTime      @default(now())
   updated_at     DateTime      @updatedAt
@@ -183,6 +192,7 @@ model Task {
   notify                Boolean    @default(false)
   notify_before_minutes Int?
   status                TaskStatus @default(OPEN)
+  priority              TaskPriority @default(MEDIUM)
   created_at            DateTime   @default(now())
   updated_at            DateTime   @updatedAt
 

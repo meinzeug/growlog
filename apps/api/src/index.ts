@@ -1,7 +1,9 @@
 import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import path from 'path';
-import 'dotenv/config';
+import dotenv from 'dotenv';
+dotenv.config({ path: path.join(__dirname, '../../../.env') });
+import 'dotenv/config'; // Keep default behavior as fallback/override
 import { json } from 'body-parser';
 import { apiRouter } from './routes';
 
