@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticateToken, AuthRequest } from '../middleware/authMiddleware';
-import { startOfDay, endOfDay } from 'date-fns';
+import { startOfDay, endOfDay, format } from 'date-fns';
 
 const prisma = new PrismaClient();
 const router = Router();
@@ -81,52 +81,22 @@ router.get('/overview', authenticateToken, async (req: Request, res: Response) =
         });
 
         // Group by week
-        const weeksMap = new Map<string, { total: number; count: number }>();
-
         // Initialize 5 weeks
+        const chartData: { label: string; height: number; }[] = [];
+        const now = new Date();
+        const oneWeek = 7 * 24 * 60 * 60 * 1000;
+
         for (let i = 4; i >= 0; i--) {
-            const d = new Date();
-            d.setDate(d.getDate() - (i * 7));
-            const label = `WEEK ${5 - i}`; // Simplistic labeling
-            // Actually, the UI shows 1 WEEK, 2 WEEK... let's just map relative to start
+            const d = new Date(now.getTime() - (i * oneWeek));
+            // e.g. "Jan 25"
+            const label = format(d, 'MMM d');
+            chartData.push({ label, height: 0 });
         }
 
-        const chartData = [
-            { label: '1 WEEK', height: 0 },
-            { label: '2 WEEK', height: 0 },
-            { label: '3 WEEK', height: 0 },
-            { label: '4 WEEK', height: 0 },
-            { label: '5 WEEK', height: 0 }
-        ];
-
-        // Fill with dummy logic or real logic?
-        // Real logic: Group metrics by week number relative to now
-        // For simplicity in this iteration:
-        // Use average height of all active plants *now* as a baseline and distribute?
-        // No, let's just return the raw metrics for the frontend to process or mock it if empty
-        // If we have no metrics, send the mock data structure but zeroed? 
-        // Let's implement a simple bucket sort
-
         if (recentMetrics.length > 0) {
-            // Reset to 0
-            chartData.forEach(d => d.height = 0);
-
-            const now = new Date().getTime();
-            const oneWeek = 7 * 24 * 60 * 60 * 1000;
-
-            recentMetrics.forEach(m => {
-                const diff = now - m.recorded_at.getTime();
-                const weekIndex = 4 - Math.floor(diff / oneWeek); // 0 to 4
-                if (weekIndex >= 0 && weekIndex <= 4) {
-                    // We need to average. But here we are iterating.
-                    // Let's use an accumulator array
-                }
-            });
-
-            // Re-do correctly
             const buckets = Array(5).fill(0).map(() => ({ sum: 0, count: 0 }));
             recentMetrics.forEach(m => {
-                const diff = now - m.recorded_at.getTime();
+                const diff = now.getTime() - m.recorded_at.getTime();
                 const weekIndex = 4 - Math.floor(diff / oneWeek);
                 if (weekIndex >= 0 && weekIndex <= 4) {
                     buckets[weekIndex].sum += m.height_cm || 0;
@@ -137,13 +107,8 @@ router.get('/overview', authenticateToken, async (req: Request, res: Response) =
             buckets.forEach((b, i) => {
                 if (b.count > 0) chartData[i].height = Math.round(b.sum / b.count);
             });
-        } else {
-            // Mock data for "New User" experience so chart isn't empty?
-            // User requested "Alle Mock Elemente... zu echten Funktionen machen"
-            // So if no data, return 0 or empty.
-            // But visually 0 is flat. Let's return 0s.
-            chartData.forEach(d => d.height = 0);
         }
+
 
         // 4. Activity (Keep existing logic)
         // Check logs

@@ -8,6 +8,8 @@ import { overviewRouter } from '../controllers/overviewController';
 import { feedbackRouter } from '../controllers/feedbackController';
 import { configRouter } from '../controllers/configController';
 
+import { userRouter } from '../controllers/userController';
+
 export const apiRouter = Router();
 
 apiRouter.use('/auth', authRouter);
@@ -18,3 +20,4 @@ apiRouter.use('/', taskRouter);
 apiRouter.use('/admin', adminRouter);
 apiRouter.use('/', feedbackRouter);
 apiRouter.use('/', configRouter);
+apiRouter.use('/', userRouter);

@@ -29,8 +29,7 @@ export const DashboardRightPanel = ({ plants, selectedPlant, onSelectPlant, onRe
             if (key === 'temperature') return selectedPlant.latest_record.temperature_c || defaultVal;
             if (key === 'humidity') return selectedPlant.latest_record.humidity_pct || defaultVal;
 
-            // Light metric is currently rendered but not stored in DB, fallback to 0 for now until sensor integration
-            if (key === 'light') return defaultVal;
+            if (key === 'light') return selectedPlant.latest_record.light_ppfd || defaultVal;
         }
 
         return defaultVal;

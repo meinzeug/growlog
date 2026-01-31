@@ -93,6 +93,7 @@ model User {
   logs          PlantLog[]
   photos        PlantPhoto[]
   tasks         Task[]
+  preferences   Json? // Store user settings like theme, notifications
 }
 
 model Grow {
@@ -210,6 +211,7 @@ model PlantMetric {
   ec            Float?
   temperature_c Float?
   humidity_pct  Float?
+  light_ppfd    Float?
   notes         String?
 
   plant Plant @relation(fields: [plant_id], references: [id], onDelete: Cascade)

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Bell, User, Save, Moon, Sun } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../context/AuthContext';
+import api from '../lib/api';
 
 export const Settings = () => {
     const { user } = useAuth();
@@ -16,12 +17,18 @@ export const Settings = () => {
             setNotificationsEnabled(Notification.permission === 'granted');
         }
 
-        // Load preferences from local storage
-        const savedReminder = localStorage.getItem('growlog_default_reminder');
-        if (savedReminder) setDefaultReminderTime(Number(savedReminder));
-
-        const savedTheme = localStorage.getItem('growlog_theme');
-        setDarkMode(savedTheme === 'dark');
+        const fetchPreferences = async () => {
+            try {
+                const res = await api.get('/profile/preferences');
+                const prefs = res.data || {};
+                if (prefs.defaultReminderTime !== undefined) setDefaultReminderTime(prefs.defaultReminderTime);
+                if (prefs.darkMode !== undefined) setDarkMode(prefs.darkMode);
+                if (prefs.emailAlerts !== undefined) setEmailAlerts(prefs.emailAlerts);
+            } catch (e) {
+                console.error("Failed to load preferences", e);
+            }
+        };
+        fetchPreferences();
     }, []);
 
     const requestNotificationPermission = async () => {
@@ -33,11 +40,21 @@ export const Settings = () => {
         setNotificationsEnabled(permission === 'granted');
     };
 
-    const savePreferences = () => {
-        localStorage.setItem('growlog_default_reminder', String(defaultReminderTime));
-        localStorage.setItem('growlog_theme', darkMode ? 'dark' : 'light');
-        // Here you would typically also save to the backend user profile
-        alert('Preferences saved successfully!');
+    const savePreferences = async () => {
+        const preferences = {
+            defaultReminderTime,
+            darkMode,
+            emailAlerts
+        };
+
+        try {
+            await api.patch('/profile/preferences', { preferences });
+            localStorage.setItem('growlog_theme', darkMode ? 'dark' : 'light'); // Keep local sync for immediate boot
+            alert('Preferences saved successfully!');
+        } catch (e) {
+            console.error("Failed to save preferences", e);
+            alert('Failed to save settings.');
+        }
     };
 
     return (

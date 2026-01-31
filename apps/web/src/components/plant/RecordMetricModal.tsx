@@ -24,6 +24,7 @@ export const RecordMetricModal = ({ isOpen, onClose, onSuccess, plant }: RecordM
             ec: 1.0,
             temperature_c: 24,
             humidity_pct: 60,
+            light_ppfd: 0,
             notes: '',
             recorded_at: new Date().toISOString().split('T')[0]
         }
@@ -113,6 +114,17 @@ export const RecordMetricModal = ({ isOpen, onClose, onSuccess, plant }: RecordM
                         unit="%"
                         icon={Droplets}
                         colorClass="bg-cyan-500"
+                    />
+                    <SliderControl
+                        label="Light Intensity (PPFD) or (Lux/100)"
+                        value={watch('light_ppfd') || 0}
+                        onChange={(v) => setValue('light_ppfd', v)}
+                        min={0}
+                        max={2000}
+                        step={10}
+                        unit="µmol" // or just scalar
+                        icon={Activity} // Sun would be better but need to import
+                        colorClass="bg-yellow-500"
                     />
                 </div>
 
