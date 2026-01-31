@@ -2,15 +2,16 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { AppShell } from './components/layout/AppShell';
 import { Login } from './pages/Login';
-import { Register } from './pages/Register'; // I will create this next
+import { Register } from './pages/Register';
 import { Dashboard } from './pages/Dashboard';
 import { Grows } from './pages/Grows';
 import { Plants } from './pages/Plants';
-// ... other pages
+import { Tasks } from './pages/Tasks';
+import { Reports } from './pages/Reports';
 
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   const { isAuthenticated, loading } = useAuth();
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <div>Loading...</div>; // Could be a nicer spinner
   if (!isAuthenticated) return <Navigate to="/login" />;
   return children;
 };
@@ -29,8 +30,8 @@ function App() {
         <Route index element={<Dashboard />} />
         <Route path="grows" element={<Grows />} />
         <Route path="plants" element={<Plants />} />
-        <Route path="tasks" element={<div>Coming Soon: Tasks</div>} />
-        <Route path="reports" element={<div>Coming Soon: Reports</div>} />
+        <Route path="tasks" element={<Tasks />} />
+        <Route path="reports" element={<Reports />} />
         <Route path="admin/users" element={<div>Coming Soon: Users</div>} />
       </Route>
     </Routes>
