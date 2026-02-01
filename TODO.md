@@ -21,7 +21,7 @@ Tasks are ordered to be executed sequentially by a coding AI without additional 
 setNotifications([
     {
         id: '1',
-        title: 'Welcome to GrowLog!',
+        title: 'Welcome to Growlog!',
         message: 'Start by adding your first plant or grow space.',
         type: 'success',
         read: false,
@@ -538,7 +538,7 @@ defaultValues: {
 ## SECTION 6: PLANT TEMPLATES & STRAIN DATA (Priority: LOW)
 
 ### Task 6.1: Replace Hardcoded Plant Templates with Database
-**File:** `apps/web/src/pages/Plants.tsx` (Lines 25-31)
+**File:** `apps/web/src/pages/Plants.tsx` (Lines 26-31)
 
 **Current State:**
 ```typescript
