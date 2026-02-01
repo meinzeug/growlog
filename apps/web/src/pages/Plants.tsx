@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../lib/api';
-import { Plus, Flower2, Filter } from 'lucide-react';
+import { Plus, Flower2, Filter, Search } from 'lucide-react'; // Added Search
 import { Modal } from '../components/ui/Modal';
 import { Input, Select } from '../components/ui/Form';
 import { useForm } from 'react-hook-form';
@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { useLanguage } from '../context/LanguageContext';
 import { calculatePlantProgress } from '../lib/plantUtils';
 import { useSettings } from '../context/SettingsContext';
+import { LoadingSpinner } from '../components/ui/LoadingSpinner'; // Added LoadingSpinner
 
 const schema = z.object({
     name: z.string().min(1, 'Name is required'),
@@ -23,9 +24,6 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
-// Template System now uses API
-
-
 export const Plants = () => {
     const { t } = useLanguage();
     const { settings } = useSettings();
@@ -33,8 +31,13 @@ export const Plants = () => {
     const [grows, setGrows] = useState<any[]>([]);
     const [templates, setTemplates] = useState<any[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true); // Initial loading state
+    const [submitting, setSubmitting] = useState(false);
     const [isTimelineView, setIsTimelineView] = useState(false);
+
+    // Filter States
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filterPhase, setFilterPhase] = useState('ALL');
 
     const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<FormData>({
         resolver: zodResolver(schema),
@@ -56,6 +59,7 @@ export const Plants = () => {
     };
 
     const fetchData = async () => {
+        setLoading(true);
         try {
             const [plantsRes, growsRes, templatesRes] = await Promise.all([
                 api.get('/plants'),
@@ -67,6 +71,8 @@ export const Plants = () => {
             setTemplates(templatesRes.data);
         } catch (e) {
             console.error(e);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -75,7 +81,7 @@ export const Plants = () => {
     }, []);
 
     const onSubmit = async (data: FormData) => {
-        setLoading(true);
+        setSubmitting(true);
         try {
             await api.post('/plants', data);
             await fetchData();
@@ -85,9 +91,20 @@ export const Plants = () => {
             console.error(e);
             alert('Failed to create plant');
         } finally {
-            setLoading(false);
+            setSubmitting(false);
         }
     };
+
+    const filteredPlants = plants.filter(plant => {
+        const matchesSearch = plant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (plant.strain || '').toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesPhase = filterPhase === 'ALL' ? true :
+            filterPhase === 'VEG' ? ['GERMINATION', 'VEGETATIVE'].includes(plant.phase) :
+                filterPhase === 'FLOWER' ? ['FLOWERING', 'DRYING', 'CURED'].includes(plant.phase) : true;
+        return matchesSearch && matchesPhase;
+    });
+
+    if (loading) return <LoadingSpinner message={t('loading_plants')} />;
 
     return (
         <div className="space-y-6">
@@ -120,8 +137,8 @@ export const Plants = () => {
                 </button>
             </div>
 
-            {/* View Toggle */}
-            <div className="flex justify-between items-center">
+            {/* Controls Bar */}
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-2 rounded-xl border border-slate-100 shadow-sm">
                 <div className="flex bg-slate-100 p-1 rounded-lg">
                     <button
                         className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${!isTimelineView ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
@@ -137,16 +154,36 @@ export const Plants = () => {
                     </button>
                 </div>
 
+                <div className="flex-1 w-full md:max-w-md relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <input
+                        type="text"
+                        placeholder={t('search_plants')}
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 bg-slate-50 border-none rounded-lg text-sm focus:ring-2 focus:ring-green-500/50 outline-none transition-all"
+                    />
+                </div>
+
                 {/* Filters */}
-                <div className="flex gap-2 filters-scroll overflow-x-auto hide-scrollbar">
-                    <button className="flex items-center space-x-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors whitespace-nowrap">
+                <div className="flex gap-2 filters-scroll overflow-x-auto hide-scrollbar w-full md:w-auto">
+                    <button
+                        onClick={() => setFilterPhase('ALL')}
+                        className={`flex items-center space-x-2 px-3 py-1.5 border rounded-full text-sm font-medium transition-colors whitespace-nowrap ${filterPhase === 'ALL' ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                    >
                         <Filter size={14} />
-                        <span>{t('all_grows')}</span>
+                        <span>{t('all')}</span>
                     </button>
-                    <button className="px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors whitespace-nowrap">
-                        {t('healthy')}
+                    <button
+                        onClick={() => setFilterPhase('VEG')}
+                        className={`px-3 py-1.5 border rounded-full text-sm font-medium transition-colors whitespace-nowrap ${filterPhase === 'VEG' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                    >
+                        {t('veg')}
                     </button>
-                    <button className="px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors whitespace-nowrap">
+                    <button
+                        onClick={() => setFilterPhase('FLOWER')}
+                        className={`px-3 py-1.5 border rounded-full text-sm font-medium transition-colors whitespace-nowrap ${filterPhase === 'FLOWER' ? 'bg-purple-100 text-purple-700 border-purple-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                    >
                         {t('flower')}
                     </button>
                 </div>
@@ -155,7 +192,7 @@ export const Plants = () => {
             {!isTimelineView ? (
                 /* Grid View */
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {plants.map((plant) => {
+                    {filteredPlants.map((plant) => {
                         const age = plant.start_date ? Math.floor((new Date().getTime() - new Date(plant.start_date).getTime()) / (1000 * 60 * 60 * 24)) : 0;
                         // Dynamic Progress Calculation
                         const progress = Math.max(0, calculatePlantProgress(plant.phase, plant.plant_type, plant.start_date));
@@ -237,7 +274,7 @@ export const Plants = () => {
                 <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 min-h-[500px] relative overflow-hidden">
                     <div className="absolute top-0 left-8 bottom-0 w-1 bg-slate-100" />
                     <div className="space-y-12 relative z-10">
-                        {plants.sort((a, b) => new Date(b.start_date || 0).getTime() - new Date(a.start_date || 0).getTime()).map((plant) => (
+                        {filteredPlants.sort((a, b) => new Date(b.start_date || 0).getTime() - new Date(a.start_date || 0).getTime()).map((plant) => (
                             <div key={plant.id} className="relative pl-16">
                                 {/* Dot on timeline */}
                                 <div className="absolute left-6 top-6 w-5 h-5 rounded-full border-4 border-white bg-green-500 shadow-md transform -translate-x-1/2 z-20"></div>
@@ -279,6 +316,36 @@ export const Plants = () => {
                     <Flower2 size={48} className="text-slate-300 mx-auto mb-4" />
                     <p className="font-medium">{t('no_plants')}</p>
                     <p className="text-sm text-slate-400 mt-1">{t('no_plants_desc')}</p>
+
+                    <button
+                        onClick={() => {
+                            if (grows.length === 0) {
+                                alert(t('create_first_grow'));
+                                return;
+                            }
+                            reset({
+                                plant_type: settings.defaultPlantType || 'PHOTOPERIOD',
+                                status: 'HEALTHY',
+                                phase: 'GERMINATION',
+                                start_date: new Date().toISOString().split('T')[0],
+                                grow_id: '',
+                                name: '',
+                                strain: ''
+                            });
+                            setIsModalOpen(true);
+                        }}
+                        className="mt-4 inline-flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm"
+                    >
+                        <Plus size={18} />
+                        <span>{t('add_plant')}</span>
+                    </button>
+                </div>
+            )}
+
+            {plants.length > 0 && filteredPlants.length === 0 && !loading && (
+                <div className="text-center py-16 text-slate-500">
+                    <Search size={48} className="text-slate-300 mx-auto mb-4" />
+                    <p className="font-medium">{t('no_results') || 'No plants found matching your search'}</p>
                 </div>
             )}
 
@@ -379,10 +446,10 @@ export const Plants = () => {
                         </button>
                         <button
                             type="submit"
-                            disabled={loading}
+                            disabled={submitting}
                             className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
                         >
-                            {loading ? t('creating') : t('add_plant')}
+                            {submitting ? t('creating') : t('add_plant')}
                         </button>
                     </div>
                 </form>

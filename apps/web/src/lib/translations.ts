@@ -375,6 +375,11 @@ export const translations = {
         sunset: 'Sunset',
         illumination: 'Illuminated',
 
+        quick_template: 'Quick Fill Template',
+        select_template: 'Select a template...',
+        loading_plants: 'Loading plants...',
+        search_plants: 'Search plants...',
+
         // Settings
         notifications: 'Notifications',
         account: 'Account',
@@ -785,6 +790,11 @@ export const translations = {
         days: 'Tage',
         unassigned: 'Nicht zugewiesen',
         unknown_strain: 'Unbekannte Sorte',
+
+        quick_template: 'Schnellvorlage',
+        select_template: 'Wähle eine Vorlage...',
+        loading_plants: 'Lade Pflanzen...',
+        search_plants: 'Pflanzen suchen...',
 
         // Settings
         notifications: 'Benachrichtigungen',
