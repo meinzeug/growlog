@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import api from '../lib/api';
+import { useAuth } from './AuthContext';
 
 export interface Notification {
     id: string;
@@ -12,60 +14,102 @@ export interface Notification {
 interface NotificationContextType {
     notifications: Notification[];
     unreadCount: number;
-    addNotification: (notification: Omit<Notification, 'id' | 'read' | 'createdAt'>) => void;
-    markAsRead: (id: string) => void;
-    markAllAsRead: () => void;
+    loading: boolean;
+    addNotification: (notification: Omit<Notification, 'id' | 'read' | 'createdAt'>) => Promise<void>;
+    markAsRead: (id: string) => Promise<void>;
+    markAllAsRead: () => Promise<void>;
     removeNotification: (id: string) => void;
+    refreshNotifications: () => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const { isAuthenticated } = useAuth();
     const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [loading, setLoading] = useState(false);
 
-    // Load initial mock data
-    useEffect(() => {
-        // Only add mock data if empty (simulate fetch)
-        if (notifications.length === 0) {
-            setNotifications([
-                {
-                    id: '1',
-                    title: 'Welcome to GrowLog!',
-                    message: 'Start by adding your first plant or grow space.',
-                    type: 'success',
-                    read: false,
-                    createdAt: new Date()
-                },
-                {
-                    id: '2',
-                    title: 'System Update',
-                    message: 'New features added: Moon Phase & Electricity Calculator.',
-                    type: 'info',
-                    read: false,
-                    createdAt: new Date(Date.now() - 3600000) // 1 hour ago
-                }
-            ]);
+    const fetchNotifications = async () => {
+        if (!isAuthenticated) return;
+        setLoading(true);
+        try {
+            const res = await api.get('/notifications');
+            // Ensure dates are parsed correctly
+            const parsed = res.data.map((n: any) => ({
+                id: n.id,
+                title: n.title,
+                message: n.message,
+                type: n.type,
+                read: n.read,
+                createdAt: new Date(n.created_at || n.createdAt)
+            }));
+            setNotifications(parsed);
+        } catch (error) {
+            console.error('Failed to fetch notifications', error);
+        } finally {
+            setLoading(false);
         }
-    }, []);
+    };
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            fetchNotifications();
+            // Poll every minute
+            const interval = setInterval(fetchNotifications, 60000);
+            return () => clearInterval(interval);
+        } else {
+            setNotifications([]);
+        }
+    }, [isAuthenticated]);
 
     const unreadCount = notifications.filter(n => !n.read).length;
 
-    const addNotification = (data: Omit<Notification, 'id' | 'read' | 'createdAt'>) => {
+    const addNotification = async (data: Omit<Notification, 'id' | 'read' | 'createdAt'>) => {
+        // Optimistic update
+        const tempId = Math.random().toString(36).substring(2, 9);
         const newNotification: Notification = {
             ...data,
-            id: Math.random().toString(36).substring(2, 9),
+            id: tempId,
             read: false,
             createdAt: new Date()
         };
         setNotifications(prev => [newNotification, ...prev]);
+
+        if (isAuthenticated) {
+            try {
+                await api.post('/notifications', data);
+                // Refresh to get real ID
+                fetchNotifications();
+            } catch (error) {
+                console.error('Failed to save notification', error);
+            }
+        }
     };
 
-    const markAsRead = (id: string) => {
+    const markAsRead = async (id: string) => {
+        // Optimistic
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+
+        if (isAuthenticated) {
+            try {
+                await api.put(`/notifications/${id}/read`);
+            } catch (error) {
+                console.error('Failed to mark notification as read', error);
+            }
+        }
     };
 
-    const markAllAsRead = () => {
+    const markAllAsRead = async () => {
+        // Optimistic
         setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+
+        if (isAuthenticated) {
+            try {
+                await api.put('/notifications/read-all');
+            } catch (error) {
+                console.error('Failed to mark all as read', error);
+            }
+        }
     };
 
     const removeNotification = (id: string) => {
@@ -73,7 +117,16 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     };
 
     return (
-        <NotificationContext.Provider value={{ notifications, unreadCount, addNotification, markAsRead, markAllAsRead, removeNotification }}>
+        <NotificationContext.Provider value={{
+            notifications,
+            unreadCount,
+            loading,
+            addNotification,
+            markAsRead,
+            markAllAsRead,
+            removeNotification,
+            refreshNotifications: fetchNotifications
+        }}>
             {children}
         </NotificationContext.Provider>
     );

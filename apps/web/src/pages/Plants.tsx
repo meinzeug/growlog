@@ -9,6 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useLanguage } from '../context/LanguageContext';
 import { calculatePlantProgress } from '../lib/plantUtils';
+import { useSettings } from '../context/SettingsContext';
 
 const schema = z.object({
     name: z.string().min(1, 'Name is required'),
@@ -22,18 +23,15 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
-// Template System for Common Strains
-const PLANT_TEMPLATES = [
-    { name: 'Northern Lights Auto', strain: 'Northern Lights', type: 'AUTOFLOWER' },
-    { name: 'White Widow Photo', strain: 'White Widow', type: 'PHOTOPERIOD' },
-    { name: 'Blue Dream Photo', strain: 'Blue Dream', type: 'PHOTOPERIOD' },
-    { name: 'Gorilla Glue Auto', strain: 'Gorilla Glue #4', type: 'AUTOFLOWER' }
-];
+// Template System now uses API
+
 
 export const Plants = () => {
     const { t } = useLanguage();
+    const { settings } = useSettings();
     const [plants, setPlants] = useState<any[]>([]);
     const [grows, setGrows] = useState<any[]>([]);
+    const [templates, setTemplates] = useState<any[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [isTimelineView, setIsTimelineView] = useState(false);
@@ -41,30 +39,32 @@ export const Plants = () => {
     const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<FormData>({
         resolver: zodResolver(schema),
         defaultValues: {
-            plant_type: 'PHOTOPERIOD', // Most common type for serious growers
-            status: 'HEALTHY',         // Assume healthy start
-            phase: 'GERMINATION',      // Usually added when popped
-            start_date: new Date().toISOString().split('T')[0] // Default to today
+            plant_type: settings.defaultPlantType || 'PHOTOPERIOD',
+            status: 'HEALTHY',
+            phase: 'GERMINATION',
+            start_date: new Date().toISOString().split('T')[0]
         }
     });
 
     const applyTemplate = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const template = PLANT_TEMPLATES.find(t => t.name === e.target.value);
+        const template = templates.find(t => t.id === e.target.value);
         if (template) {
             setValue('name', template.name);
             setValue('strain', template.strain);
-            setValue('plant_type', template.type as any);
+            setValue('plant_type', template.plant_type as any);
         }
     };
 
     const fetchData = async () => {
         try {
-            const [plantsRes, growsRes] = await Promise.all([
+            const [plantsRes, growsRes, templatesRes] = await Promise.all([
                 api.get('/plants'),
-                api.get('/grows')
+                api.get('/grows'),
+                api.get('/templates/plants')
             ]);
             setPlants(plantsRes.data);
             setGrows(growsRes.data);
+            setTemplates(templatesRes.data);
         } catch (e) {
             console.error(e);
         }
@@ -102,6 +102,15 @@ export const Plants = () => {
                             alert(t('create_first_grow'));
                             return;
                         }
+                        reset({
+                            plant_type: settings.defaultPlantType || 'PHOTOPERIOD',
+                            status: 'HEALTHY',
+                            phase: 'GERMINATION',
+                            start_date: new Date().toISOString().split('T')[0],
+                            grow_id: '',
+                            name: '',
+                            strain: ''
+                        });
                         setIsModalOpen(true);
                     }}
                     className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm"
@@ -289,8 +298,8 @@ export const Plants = () => {
                             defaultValue=""
                         >
                             <option value="" disabled>{t('select_template') || 'Select a template...'}</option>
-                            {PLANT_TEMPLATES.map(tmp => (
-                                <option key={tmp.name} value={tmp.name}>{tmp.name}</option>
+                            {templates.map(tmp => (
+                                <option key={tmp.id} value={tmp.id}>{tmp.name}</option>
                             ))}
                         </select>
                     </div>

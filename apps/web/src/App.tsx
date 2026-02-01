@@ -12,10 +12,12 @@ import { Tasks } from './pages/Tasks';
 import { Reports } from './pages/Reports';
 import { Tools } from './pages/Tools';
 import { Settings } from './pages/Settings';
+import { ComingSoon } from './pages/ComingSoon';
+import { LoadingSpinner } from './components/ui/LoadingSpinner';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, loading } = useAuth();
-  if (loading) return <div>Loading...</div>; // Could be a nicer spinner
+  if (loading) return <LoadingSpinner fullScreen />;
   if (!isAuthenticated) return <Navigate to="/login" />;
   return children;
 };
@@ -40,7 +42,7 @@ function App() {
         <Route path="reports" element={<Reports />} />
         <Route path="tools" element={<Tools />} />
         <Route path="settings" element={<Settings />} />
-        <Route path="admin/users" element={<div>Coming Soon: Users</div>} />
+        <Route path="admin/users" element={<ComingSoon featureName="Users" />} />
       </Route>
     </Routes>
   );

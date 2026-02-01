@@ -74,6 +74,11 @@ router.post('/tasks/:id/complete', authenticateToken, async (req: Request, res: 
     const task = await prisma.task.findFirst({ where: { id: req.params.id, owner_user_id: userId as string } });
     if (!task) return res.status(404).json({ error: 'Task not found' });
 
+    // 1. Idempotency Check: If already done, ignore.
+    if (task.status === 'DONE') {
+        return res.json(task);
+    }
+
     const updated = await prisma.task.update({
         where: { id: req.params.id },
         data: { status: 'DONE' }
@@ -90,27 +95,47 @@ router.post('/tasks/:id/complete', authenticateToken, async (req: Request, res: 
         else if (rule === 'EVERY_3_DAYS') nextDate.setDate(nextDate.getDate() + 3);
         else if (rule === 'MONTHLY') nextDate.setMonth(nextDate.getMonth() + 1);
 
-        // If the calculated next date is in the past (e.g. missed task), 
-        // should we skip to the future? For now, let's keep strict cadence 
-        // but ensure we don't create duplicates if user spans click spam.
-        // Actually, simple valid check:
-        // Use max(now, nextDate)? No, strict cadence is better for growing schedules.
+        // 2. Smart Check: Prevent Duplicate Future Tasks
+        // If the user double-clicks or somehow we have lag, or if a task for that date already exists.
+        // We look for an OPEN task with the same Title and Plant/Grow for the calculated date (ignoring time slightly or exact match?)
+        // Let's match exact Title + Plant/Grow + Status=OPEN. 
+        // If one exists that is "close" to the target date, we skip.
 
-        await prisma.task.create({
-            data: {
+        // Define a window for "duplicate" (e.g. same day)
+        const startOfDay = new Date(nextDate); startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(nextDate); endOfDay.setHours(23, 59, 59, 999);
+
+        const existingDuplicate = await prisma.task.findFirst({
+            where: {
                 owner_user_id: userId as string,
                 grow_id: task.grow_id,
                 plant_id: task.plant_id,
                 title: task.title,
-                description: task.description,
-                due_at: nextDate,
-                repeat_rule: task.repeat_rule,
-                notify: task.notify,
-                notify_before_minutes: task.notify_before_minutes,
-                priority: task.priority,
-                status: 'OPEN'
+                status: 'OPEN',
+                due_at: {
+                    gte: startOfDay,
+                    lte: endOfDay
+                }
             }
         });
+
+        if (!existingDuplicate) {
+            await prisma.task.create({
+                data: {
+                    owner_user_id: userId as string,
+                    grow_id: task.grow_id,
+                    plant_id: task.plant_id,
+                    title: task.title,
+                    description: task.description,
+                    due_at: nextDate,
+                    repeat_rule: task.repeat_rule,
+                    notify: task.notify,
+                    notify_before_minutes: task.notify_before_minutes,
+                    priority: task.priority,
+                    status: 'OPEN'
+                }
+            });
+        }
     }
 
     res.json(updated);

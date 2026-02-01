@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Calculator, Calendar, Droplets, Thermometer, Sun, Wind, Zap, Settings, Download } from 'lucide-react';
 import clsx from 'clsx';
 import { useLanguage } from '../context/LanguageContext';
@@ -47,6 +47,15 @@ const SettingsDialog = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                         { value: 'dark', label: t('dark_mode') || 'Dark' }
                     ]}
                 />
+                <Select
+                    label={t('temp_unit') || 'Temperature Unit'}
+                    value={localSettings.temperatureUnit}
+                    onChange={e => setLocalSettings({ ...localSettings, temperatureUnit: e.target.value as 'C' | 'F' })}
+                    options={[
+                        { value: 'C', label: 'Celsius (°C)' },
+                        { value: 'F', label: 'Fahrenheit (°F)' }
+                    ]}
+                />
                 <div className="pt-2 border-t border-slate-100">
                     <button
                         onClick={() => {
@@ -82,9 +91,33 @@ const SettingsDialog = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
 const NutrientCalculator = () => {
     const { t } = useLanguage();
     const { settings } = useSettings();
-    const [waterAmount, setWaterAmount] = useState(settings.defaultWaterAmount);
-    const [baseNutrient, setBaseNutrient] = useState(2);
-    const [additive, setAdditive] = useState(1);
+
+    // Load defaults from local storage or settings
+    const [waterAmount, setWaterAmount] = useState(() => {
+        const saved = localStorage.getItem('calc_nutrients_water');
+        return saved ? Number(saved) : settings.defaultWaterAmount;
+    });
+    const [baseNutrient, setBaseNutrient] = useState(() => {
+        const saved = localStorage.getItem('calc_nutrients_base');
+        return saved ? Number(saved) : 2;
+    });
+    const [additive, setAdditive] = useState(() => {
+        const saved = localStorage.getItem('calc_nutrients_additive');
+        return saved ? Number(saved) : 1;
+    });
+
+    // Persist changes
+    useEffect(() => {
+        localStorage.setItem('calc_nutrients_water', String(waterAmount));
+    }, [waterAmount]);
+
+    useEffect(() => {
+        localStorage.setItem('calc_nutrients_base', String(baseNutrient));
+    }, [baseNutrient]);
+
+    useEffect(() => {
+        localStorage.setItem('calc_nutrients_additive', String(additive));
+    }, [additive]);
 
     return (
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 h-full">
@@ -202,15 +235,23 @@ const HarvestEstimator = () => {
 
 const VPDCalculator = () => {
     const { t } = useLanguage();
-    const [temp, setTemp] = useState(24);
+    const { settings } = useSettings();
+    const isMetric = settings.temperatureUnit === 'C';
+    const [temp, setTemp] = useState(isMetric ? 24 : 75);
     const [rh, setRh] = useState(60);
-    const [offset, setOffset] = useState(-2);
+    const [offset, setOffset] = useState(isMetric ? -2 : -4);
 
     // SVP = 0.61078 * exp(17.27 * T / (T + 237.3))
+    // T must be in Celsius
     const calculateSVP = (T: number) => 0.61078 * Math.exp((17.27 * T) / (T + 237.3));
 
-    const svp = calculateSVP(temp); // Air SVP
-    const leafSvp = calculateSVP(temp + offset); // Leaf SVP
+    const toCelsius = (v: number) => isMetric ? v : (v - 32) * 5 / 9;
+
+    const tempC = toCelsius(temp);
+    const offsetC = isMetric ? offset : (offset * 5 / 9);
+
+    const svp = calculateSVP(tempC); // Air SVP
+    const leafSvp = calculateSVP(tempC + offsetC); // Leaf SVP
     const vpd = leafSvp - (svp * (rh / 100));
 
     // Color code VPD
@@ -229,7 +270,7 @@ const VPDCalculator = () => {
             </h3>
             <div className="space-y-4">
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('air_temp')} (°C)</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('air_temp')} ({isMetric ? '°C' : '°F'})</label>
                     <input type="number" value={temp} onChange={e => setTemp(Number(e.target.value))} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none" />
                 </div>
                 <div>
@@ -237,7 +278,7 @@ const VPDCalculator = () => {
                     <input type="number" value={rh} onChange={e => setRh(Number(e.target.value))} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('leaf_temp_offset')} (°C)</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('leaf_temp_offset')} ({isMetric ? '°C' : '°F'})</label>
                     <input type="number" value={offset} onChange={e => setOffset(Number(e.target.value))} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-slate-500 outline-none" />
                     <p className="text-xs text-slate-400 mt-1">{t('leaf_offset_hint')}</p>
                 </div>
@@ -258,8 +299,31 @@ const DLICalculator = () => {
     const { t } = useLanguage();
     const [ppfd, setPpfd] = useState(800);
     const [hours, setHours] = useState(12);
+    const [phase, setPhase] = useState<'seedling' | 'veg' | 'flower'>('veg');
 
     const dli = (ppfd * hours * 3600) / 1000000;
+
+    // Recommendations
+    const ranges = {
+        seedling: { min: 10, max: 20, target: '10-20' },
+        veg: { min: 20, max: 40, target: '25-40' },
+        flower: { min: 35, max: 60, target: '40-60' }
+    };
+
+    const currentRange = ranges[phase];
+    let statusColor = 'text-yellow-600';
+    let statusBg = 'bg-yellow-50';
+
+    if (dli < currentRange.min) {
+        statusColor = 'text-blue-600';
+        statusBg = 'bg-blue-50';
+    } else if (dli > currentRange.max) {
+        statusColor = 'text-red-600';
+        statusBg = 'bg-red-50';
+    } else {
+        statusColor = 'text-green-600';
+        statusBg = 'bg-green-50';
+    }
 
     return (
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 h-full">
@@ -269,6 +333,18 @@ const DLICalculator = () => {
             </h3>
             <div className="space-y-4">
                 <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('p_stage') || 'Growth Stage'}</label>
+                    <Select
+                        options={[
+                            { value: 'seedling', label: t('germination') || 'Seedling' },
+                            { value: 'veg', label: t('veg') || 'Vegetative' },
+                            { value: 'flower', label: t('flower') || 'Flowering' }
+                        ]}
+                        value={phase}
+                        onChange={(e) => setPhase(e.target.value as any)}
+                    />
+                </div>
+                <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">{t('ppfd')} (µmol/m²/s)</label>
                     <input type="number" value={ppfd} onChange={e => setPpfd(Number(e.target.value))} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-yellow-500 outline-none" />
                 </div>
@@ -277,12 +353,14 @@ const DLICalculator = () => {
                     <input type="number" value={hours} onChange={e => setHours(Number(e.target.value))} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-yellow-500 outline-none" />
                 </div>
 
-                <div className="mt-4 p-4 bg-yellow-50 rounded-lg flex flex-col items-center justify-center text-center">
-                    <h4 className="font-medium text-yellow-900 mb-1">{t('daily_light_integral')}</h4>
-                    <p className="text-4xl font-bold text-yellow-600">
+                <div className={clsx("mt-4 p-4 rounded-lg flex flex-col items-center justify-center text-center transition-colors", statusBg)}>
+                    <h4 className={clsx("font-medium mb-1", statusColor)}>{t('daily_light_integral')}</h4>
+                    <p className={clsx("text-4xl font-bold", statusColor)}>
                         {dli.toFixed(1)} <span className="text-lg font-normal">{t('mol_m2_d')}</span>
                     </p>
-                    <p className="text-xs text-yellow-800/60 mt-2">{t('dli_hint')}</p>
+                    <p className={clsx("text-xs mt-2 opacity-80", statusColor)}>
+                        {t('target_for')} {phase}: {currentRange.target}
+                    </p>
                 </div>
             </div>
         </div>
@@ -298,6 +376,9 @@ const CO2Calculator = () => {
 
     const volume = width * length * height;
     const required = (volume * (targetPPM - 400)) / 1000000; // Simplified
+
+    const isDangerous = targetPPM > 5000;
+    const isHigh = targetPPM > 2000;
 
     return (
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 h-full">
@@ -322,7 +403,22 @@ const CO2Calculator = () => {
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">{t('target_ppm')}</label>
-                    <input type="number" value={targetPPM} onChange={e => setTargetPPM(Number(e.target.value))} className="w-full px-3 py-2 border rounded-lg outline-none" />
+                    <input
+                        type="number"
+                        value={targetPPM}
+                        onChange={e => setTargetPPM(Number(e.target.value))}
+                        className={clsx(
+                            "w-full px-3 py-2 border rounded-lg outline-none focus:ring-2",
+                            isDangerous ? "border-red-500 text-red-600 focus:ring-red-500" :
+                                isHigh ? "border-yellow-500 text-yellow-600 focus:ring-yellow-500" :
+                                    "border-slate-300 focus:ring-green-500"
+                        )}
+                    />
+                    {isDangerous && (
+                        <p className="text-xs text-red-600 font-bold mt-1 flex items-center gap-1">
+                            ⚠️ {t('danger_co2_level') || 'DANGER: CO2 levels > 5000 PPM are dangerous!'}
+                        </p>
+                    )}
                 </div>
                 <div className="mt-4 p-4 bg-slate-100 rounded-lg">
                     <h4 className="font-medium text-slate-800 mb-1">{t('room_vol')}: {volume} {t('cubic_feet')}</h4>
@@ -379,37 +475,91 @@ const PotSizeCalculator = () => {
 const ElectricityCalculator = () => {
     const { t } = useLanguage();
     const { settings } = useSettings();
-    const [watts, setWatts] = useState(600);
-    const [hours, setHours] = useState(12);
+    const [devices, setDevices] = useState<{ id: string; name: string; watts: number; hours: number }[]>([
+        { id: '1', name: t('grow_light') || 'Grow Light', watts: 600, hours: 12 }
+    ]);
+    const [newDevice, setNewDevice] = useState({ name: '', watts: 0, hours: 24 });
     const [cost, setCost] = useState(settings.kwhCost);
 
-    const kwhPerDay = (watts * hours) / 1000;
-    const dailyCost = kwhPerDay * cost;
+    const addDevice = () => {
+        if (!newDevice.name || newDevice.watts <= 0) return;
+        setDevices([...devices, { ...newDevice, id: Math.random().toString(36).substr(2, 9) }]);
+        setNewDevice({ name: '', watts: 0, hours: 24 });
+    };
+
+    const removeDevice = (id: string) => {
+        setDevices(devices.filter(d => d.id !== id));
+    };
+
+    const totalKwhPerDay = devices.reduce((sum, d) => sum + ((d.watts * d.hours) / 1000), 0);
+    const dailyCost = totalKwhPerDay * cost;
 
     return (
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 h-full">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 h-full flex flex-col">
             <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
                 <Zap className="text-yellow-400" />
                 {t('elec_cost_calc')}
             </h3>
-            <div className="space-y-4">
-                <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('total_watts')} (W)</label>
-                    <input type="number" value={watts} onChange={e => setWatts(Number(e.target.value))} className="w-full px-3 py-2 border rounded-lg outline-none" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('hours_on')} (h/day)</label>
-                    <input type="number" value={hours} onChange={e => setHours(Number(e.target.value))} className="w-full px-3 py-2 border rounded-lg outline-none" />
-                </div>
+
+            <div className="flex-1 space-y-4">
+                {/* Cost Setting */}
                 <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">{t('cost_kwh')}</label>
                     <input type="number" value={cost} onChange={e => setCost(Number(e.target.value))} className="w-full px-3 py-2 border rounded-lg outline-none" />
-                    <p className="text-xs text-slate-400 mt-1">Avg ~0.12 $/kWh</p>
                 </div>
-                <div className="mt-4 p-4 bg-yellow-50 rounded-lg text-center">
+
+                {/* Device List */}
+                <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                    {devices.map(device => (
+                        <div key={device.id} className="flex justify-between items-center bg-slate-50 p-2 rounded text-sm group">
+                            <div>
+                                <div className="font-medium text-slate-700">{device.name}</div>
+                                <div className="text-xs text-slate-500">{device.watts}W × {device.hours}h</div>
+                            </div>
+                            <button onClick={() => removeDevice(device.id)} className="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Zap size={14} className="rotate-45" />
+                            </button>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Add Device Form */}
+                <div className="grid grid-cols-5 gap-2 pt-2 border-t border-slate-100">
+                    <input
+                        placeholder={t('device_name') || "Device"}
+                        value={newDevice.name}
+                        onChange={e => setNewDevice({ ...newDevice, name: e.target.value })}
+                        className="col-span-2 px-2 py-1 text-sm border rounded"
+                    />
+                    <input
+                        placeholder="W"
+                        type="number"
+                        value={newDevice.watts || ''}
+                        onChange={e => setNewDevice({ ...newDevice, watts: Number(e.target.value) })}
+                        className="col-span-1 px-2 py-1 text-sm border rounded"
+                    />
+                    <input
+                        placeholder="Hr"
+                        type="number"
+                        value={newDevice.hours}
+                        onChange={e => setNewDevice({ ...newDevice, hours: Number(e.target.value) })}
+                        className="col-span-1 px-2 py-1 text-sm border rounded"
+                    />
+                    <button
+                        onClick={addDevice}
+                        disabled={!newDevice.name || !newDevice.watts}
+                        className="col-span-1 bg-slate-800 text-white rounded text-xs font-bold hover:bg-slate-700 disabled:opacity-50"
+                    >
+                        +
+                    </button>
+                </div>
+
+                <div className="mt-auto p-4 bg-yellow-50 rounded-lg text-center">
                     <h4 className="font-medium text-yellow-900 mb-1">{t('monthly_cost')}</h4>
                     <p className="text-3xl font-bold text-yellow-600">{settings.currency}{(dailyCost * 30).toFixed(2)}</p>
-                    <p className="text-xs text-yellow-800/60 mt-1">{t('daily_cost')}: {settings.currency}{(dailyCost).toFixed(2)}</p>
+                    <p className="text-xs text-yellow-800/60 mt-1">
+                        {t('daily_cost')}: {settings.currency}{(dailyCost).toFixed(2)} • {totalKwhPerDay.toFixed(1)} kWh/day
+                    </p>
                 </div>
             </div>
         </div>

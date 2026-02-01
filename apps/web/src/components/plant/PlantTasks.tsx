@@ -1,34 +1,51 @@
 
 import { useState, useEffect } from 'react';
 import api from '../../lib/api';
-import { CheckCircle, Circle, Clock, Plus, Calendar, Trash2 } from 'lucide-react';
+import { CheckCircle, Circle, Clock, Plus, Calendar, Trash2, Loader2 } from 'lucide-react';
 import { format, isPast, isToday } from 'date-fns';
 import { Modal } from '../ui/Modal';
 import { Input, Select } from '../ui/Form';
 import { useForm } from 'react-hook-form';
 import clsx from 'clsx';
 import { useLanguage } from '../../context/LanguageContext';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
 
 interface PlantTasksProps {
     plantId: string;
 }
 
 export const PlantTasks = ({ plantId }: PlantTasksProps) => {
+    const [processing, setProcessing] = useState<Set<string>>(new Set());
     const [tasks, setTasks] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
-    const { t } = useLanguage();
+    const { t, dateLocale } = useLanguage();
 
-    const { register, handleSubmit, reset } = useForm({
+    const { register, handleSubmit, reset, watch, setValue } = useForm({
         defaultValues: {
             title: '',
-            due_at: new Date().toISOString().split('T')[0], // Default to today
-            // time: '09:00', // could add time later
-            repeat_rule: '', // Default to one-time task
-            notify: false    // Reminders off by default
+            due_at: new Date().toISOString().split('T')[0],
+            due_time: '09:00',
+            repeat_rule: '',
+            notify: false
         }
     });
+
+    // Smart Defaults
+    const watchedTitle = watch('title');
+    useEffect(() => {
+        if (!watchedTitle) return;
+        const lower = watchedTitle.toLowerCase();
+
+        if (lower.includes('water')) {
+            setValue('repeat_rule', '3days', { shouldValidate: true });
+        } else if (lower.includes('feed') || lower.includes('nutrient')) {
+            setValue('repeat_rule', 'weekly', { shouldValidate: true });
+        } else if (lower.includes('daily') || lower.includes('check') || lower.includes('inspect')) {
+            setValue('repeat_rule', 'daily', { shouldValidate: true });
+        }
+    }, [watchedTitle, setValue]);
 
     const fetchTasks = async () => {
         try {
@@ -48,9 +65,7 @@ export const PlantTasks = ({ plantId }: PlantTasksProps) => {
     const onSubmit = async (data: any) => {
         setSubmitting(true);
         try {
-            // Combine date and default time for simplicity
-            const dueAt = new Date(`${data.due_at}T09:00:00`).toISOString();
-
+            const dueAt = new Date(`${data.due_at}T${data.due_time || '09:00'}:00`).toISOString();
             await api.post('/tasks', {
                 plant_id: plantId,
                 title: data.title,
@@ -70,12 +85,22 @@ export const PlantTasks = ({ plantId }: PlantTasksProps) => {
     };
 
     const toggleTask = async (taskId: string, status: string) => {
-        if (status === 'DONE') return; // already done
+        if (status === 'DONE' || processing.has(taskId)) return;
+
+        // Optimistic / Loading State
+        setProcessing(prev => new Set(prev).add(taskId));
+
         try {
             await api.post(`/tasks/${taskId}/complete`);
-            fetchTasks(); // refresh to show update
+            await fetchTasks();
         } catch (e) {
             console.error(e);
+        } finally {
+            setProcessing(prev => {
+                const next = new Set(prev);
+                next.delete(taskId);
+                return next;
+            });
         }
     };
 
@@ -89,7 +114,7 @@ export const PlantTasks = ({ plantId }: PlantTasksProps) => {
         }
     };
 
-    if (loading) return <div className="text-center py-8 text-slate-400">{t('loading')}</div>;
+    if (loading) return <div className="py-12"><LoadingSpinner /></div>;
 
     const openTasks = tasks.filter(t => t.status === 'OPEN');
     const completedTasks = tasks.filter(t => t.status !== 'OPEN');
@@ -121,9 +146,17 @@ export const PlantTasks = ({ plantId }: PlantTasksProps) => {
                         <div className="flex items-center gap-4">
                             <button
                                 onClick={() => toggleTask(task.id, task.status)}
-                                className="text-slate-300 hover:text-green-500 transition-colors"
+                                disabled={processing.has(task.id)}
+                                className={clsx(
+                                    "transition-colors",
+                                    processing.has(task.id) ? "text-slate-300 cursor-not-allowed" : "text-slate-300 hover:text-green-500"
+                                )}
                             >
-                                <Circle size={24} />
+                                {processing.has(task.id) ? (
+                                    <Loader2 size={24} className="animate-spin text-green-500" />
+                                ) : (
+                                    <Circle size={24} />
+                                )}
                             </button>
                             <div>
                                 <h4 className="font-medium text-slate-900">{task.title}</h4>
@@ -133,7 +166,7 @@ export const PlantTasks = ({ plantId }: PlantTasksProps) => {
                                             isToday(new Date(task.due_at)) ? "text-orange-500 font-medium" : ""
                                     )}>
                                         <Clock size={12} />
-                                        {isToday(new Date(task.due_at)) ? (t('today') || 'Today') : format(new Date(task.due_at), 'MMM d')}
+                                        {isToday(new Date(task.due_at)) ? (t('today') || 'Today') : format(new Date(task.due_at), 'MMM d', { locale: dateLocale })}
                                     </span>
                                     {task.repeat_rule && (
                                         <span className="bg-slate-100 px-1.5 py-0.5 rounded">{t('repeats')}</span>
@@ -152,9 +185,17 @@ export const PlantTasks = ({ plantId }: PlantTasksProps) => {
                         <h4 className="text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">{t('completed')}</h4>
                         <div className="space-y-2 opacity-60">
                             {completedTasks.map(task => (
-                                <div key={task.id} className="flex items-center gap-4 p-3 rounded-lg bg-slate-50">
-                                    <CheckCircle size={20} className="text-green-500" />
-                                    <span className="text-slate-600 text-sm line-through">{task.title}</span>
+                                <div key={task.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-50">
+                                    <div className="flex items-center gap-4">
+                                        <CheckCircle size={20} className="text-green-500 flex-shrink-0" />
+                                        <div>
+                                            <span className="text-slate-600 text-sm line-through font-medium block">{task.title}</span>
+                                            <span className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                                                <Clock size={10} />
+                                                {format(new Date(task.updated_at), 'MMM d, HH:mm', { locale: dateLocale })}
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -170,11 +211,16 @@ export const PlantTasks = ({ plantId }: PlantTasksProps) => {
                         {...register('title', { required: true })}
                     />
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-3 gap-4">
                         <Input
                             type="date"
                             label={t('due_date')}
                             {...register('due_at')}
+                        />
+                        <Input
+                            type="time"
+                            label={t('time')}
+                            {...register('due_time')}
                         />
                         <Select
                             label={t('frequency') || 'Repeat'}

@@ -8,10 +8,12 @@ import { PlantPhotos } from '../components/plant/PlantPhotos';
 import { PlantLogs } from '../components/plant/PlantLogs';
 import { PlantMetrics } from '../components/plant/PlantMetrics';
 import { PlantTasks } from '../components/plant/PlantTasks';
+import { AddLogModal } from '../components/plant/AddLogModal';
 import { Modal } from '../components/ui/Modal';
 import { Input, Select } from '../components/ui/Form';
 import { useForm } from 'react-hook-form';
 import { useLanguage } from '../context/LanguageContext';
+import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 
 const PLANT_PHASES = ['GERMINATION', 'VEGETATIVE', 'FLOWERING', 'DRYING', 'CURED', 'FINISHED'];
 
@@ -24,6 +26,10 @@ export const PlantDetail = () => {
     const [activeTab, setActiveTab] = useState<'overview' | 'logs' | 'photos' | 'metrics' | 'tasks'>('overview');
     const [isPhaseModalOpen, setIsPhaseModalOpen] = useState(false);
     const [submittingPhase, setSubmittingPhase] = useState(false);
+
+    // Log Modal State
+    const [isLogModalOpen, setIsLogModalOpen] = useState(false);
+    const [logModalType, setLogModalType] = useState('NOTE');
 
     const { register: registerPhase, handleSubmit: handleSubmitPhase, reset: resetPhase } = useForm({
         defaultValues: {
@@ -69,7 +75,7 @@ export const PlantDetail = () => {
         if (id) fetchPlant();
     }, [id]);
 
-    if (loading) return <div>{t('loading')}</div>;
+    if (loading) return <LoadingSpinner className="py-20" />;
     if (!plant) return null;
 
     return (
@@ -254,10 +260,20 @@ export const PlantDetail = () => {
                             </div>
 
                             <div className="mt-auto">
-                                <button className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition-colors shadow-sm mb-3">
+                                <button
+                                    onClick={() => {
+                                        setLogModalType('WATER');
+                                        setIsLogModalOpen(true);
+                                    }}
+                                    className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition-colors shadow-sm mb-3">
                                     {t('log_watering_feeding')}
                                 </button>
-                                <button className="w-full py-3 bg-white border border-slate-200 hover:border-slate-300 text-slate-600 font-bold rounded-xl transition-colors">
+                                <button
+                                    onClick={() => {
+                                        setLogModalType('NOTE');
+                                        setIsLogModalOpen(true);
+                                    }}
+                                    className="w-full py-3 bg-white border border-slate-200 hover:border-slate-300 text-slate-600 font-bold rounded-xl transition-colors">
                                     {t('add_log_entry')}
                                 </button>
                             </div>
@@ -270,7 +286,7 @@ export const PlantDetail = () => {
                 )}
 
                 {activeTab === 'logs' && (
-                    <PlantLogs plantId={id!} />
+                    <PlantLogs plantId={id!} plant={plant} />
                 )}
 
                 {activeTab === 'metrics' && (
@@ -302,6 +318,19 @@ export const PlantDetail = () => {
                     </div>
                 </form>
             </Modal>
+
+            {plant && (
+                <AddLogModal
+                    isOpen={isLogModalOpen}
+                    onClose={() => setIsLogModalOpen(false)}
+                    plantId={plant.id}
+                    initialType={logModalType}
+                    onSuccess={() => {
+                        // refreshing plant details might update "last fed" stats if we implement them
+                        fetchPlant();
+                    }}
+                />
+            )}
         </div>
     );
 };

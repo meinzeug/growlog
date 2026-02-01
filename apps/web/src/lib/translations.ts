@@ -12,6 +12,7 @@ export const translations = {
 
         // Dashboard
         hello: 'Hello!',
+        grower: 'Grower',
         total_plants: 'Total plants',
         active_plants: 'Active plants',
         healthy_plants: 'Healthy plants',
@@ -107,6 +108,15 @@ export const translations = {
         // Tools Hints/Units
         leaf_offset_hint: 'Usually -2°C to -5°C under LEDs',
         cubic_feet: 'cu ft',
+        liters_hint: 'Volume of water in Liters',
+        danger_co2_level: 'DANGER: CO2 levels > 5000 PPM are dangerous!',
+        grow_light: 'Grow Light',
+        device_name: 'Device Name',
+        pot_size_calc: 'Pot Size Calculator',
+        grow_cycle_weeks: 'Grow Cycle Length (Weeks)',
+        rec_pot_size: 'Recommended Pot Size',
+        p_stage: 'Growth Stage',
+        target_for: 'Target for',
 
         // Auth
         welcome_back: 'Welcome Back',
@@ -225,6 +235,7 @@ export const translations = {
         env_target: 'Environment (Target)',
         next_crop: 'Next Crop',
         daytime: 'Daytime',
+        grow_description_placeholder: 'Tent size, equipment details...',
 
         // Plants
         grid_view: 'Grid View',
@@ -252,6 +263,7 @@ export const translations = {
         age: 'Age',
         days: 'Days',
         unassigned: 'Unassigned',
+        unknown_strain: 'Unknown Strain',
 
         // Tasks
         tasks_title: 'Calendar',
@@ -260,6 +272,8 @@ export const translations = {
         new_task: 'New Task',
         add_task: 'Add Task',
         task_title: 'Task Title',
+        task_title_placeholder: 'e.g. Water Plants',
+        time: 'Time',
         due_date: 'Due Date',
         frequency: 'Frequency',
         priority: 'Priority',
@@ -359,6 +373,7 @@ export const translations = {
         rec_waning_crescent: 'Rest period for plants.',
         sunrise: 'Sunrise',
         sunset: 'Sunset',
+        illumination: 'Illuminated',
 
         // Settings
         notifications: 'Notifications',
@@ -367,6 +382,13 @@ export const translations = {
         dark_mode: 'Dark Mode',
         enable_push: 'Enable Push Notifications',
         active: 'Active',
+        temp_unit: 'Temperature Unit',
+        default_water_amount: 'Default Water Amount (L)',
+        currency_symbol_pref: 'Currency Symbol',
+        electricity_cost: 'Electricity Cost (per kWh)',
+        theme_mode: 'Theme Mode',
+        light_mode: 'Light',
+        export_settings: 'Export Settings',
 
         // Header / Search
         search_placeholder: 'Search plants, grows, logs...',
@@ -374,6 +396,19 @@ export const translations = {
         profile: 'Profile',
         no_results: 'No results found',
         search_results: 'Search Results',
+
+        // Feedback
+        feedback_subject_placeholder: "What's on your mind?",
+        feedback_description_placeholder: 'Describe your idea or issue...',
+
+        // Warnings
+        no_environment_configured: 'No environment configured.',
+
+        // Coming Soon
+        coming_soon: 'Coming Soon',
+        feature_under_development: 'This feature is currently under development.',
+        notify_me: 'Notify Me',
+        back_to_dashboard: 'Back to Dashboard',
     },
     de: {
         dashboard: 'Übersicht',
@@ -388,6 +423,7 @@ export const translations = {
 
         // Dashboard
         hello: 'Hallo!',
+        grower: 'Gärtner',
         total_plants: 'Gesamt Pflanzen',
         active_plants: 'Aktive Pflanzen',
         healthy_plants: 'Gesunde Pflanzen',
@@ -483,6 +519,15 @@ export const translations = {
         // Tools Hints/Units
         leaf_offset_hint: 'Normalerweise -2°C bis -5°C unter LEDs',
         cubic_feet: 'ft³',
+        liters_hint: 'Wasservolumen in Litern',
+        danger_co2_level: 'GEFAHR: CO2-Werte > 5000 PPM sind lebensgefährlich!',
+        grow_light: 'Pflanzenlampe',
+        device_name: 'Gerätename',
+        pot_size_calc: 'Topfgrößen Rechner',
+        grow_cycle_weeks: 'Anbauzyklus Länge (Wochen)',
+        rec_pot_size: 'Empfohlene Topfgröße',
+        p_stage: 'Wachstumsphase',
+        target_for: 'Ziel für',
 
         // Auth
         welcome_back: 'Willkommen zurück',
@@ -641,6 +686,7 @@ export const translations = {
         env_target: 'Umgebung (Ziel)',
         next_crop: 'Nächste Ernte',
         daytime: 'Tagsüber',
+        grow_description_placeholder: 'Zeltgröße, Ausrüstung...',
 
         // Tasks
         tasks_title: 'Kalender',
@@ -649,6 +695,8 @@ export const translations = {
         new_task: 'Neue Aufgabe',
         add_task: 'Aufgabe hinzufügen',
         task_title: 'Aufgabentitel',
+        task_title_placeholder: 'z.B. Pflanzen gießen',
+        time: 'Uhrzeit',
         due_date: 'Fälligkeitsdatum',
         frequency: 'Häufigkeit',
         priority: 'Priorität',
@@ -708,6 +756,7 @@ export const translations = {
         rec_waning_crescent: 'Ruhephase für Pflanzen.',
         sunrise: 'Sonnenaufgang',
         sunset: 'Sonnenuntergang',
+        illumination: 'Beleuchtet',
 
         // Plants
         grid_view: 'Rasteransicht',
@@ -735,6 +784,7 @@ export const translations = {
         age: 'Alter',
         days: 'Tage',
         unassigned: 'Nicht zugewiesen',
+        unknown_strain: 'Unbekannte Sorte',
 
         // Settings
         notifications: 'Benachrichtigungen',
@@ -743,6 +793,13 @@ export const translations = {
         dark_mode: 'Dunkelmodus',
         enable_push: 'Push-Benachrichtigungen aktivieren',
         active: 'Aktiv',
+        temp_unit: 'Temperatureinheit',
+        default_water_amount: 'Standard Wassermenge (L)',
+        currency_symbol_pref: 'Währungssymbol',
+        electricity_cost: 'Stromkosten (pro kWh)',
+        theme_mode: 'Design Modus',
+        light_mode: 'Hell',
+        export_settings: 'Einstellungen exportieren',
 
         // Header / Search
         search_placeholder: 'Suche Pflanzen, Züchtungen, Logs...',
@@ -750,6 +807,19 @@ export const translations = {
         profile: 'Profil',
         no_results: 'Keine Ergebnisse gefunden',
         search_results: 'Suchergebnisse',
+
+        // Feedback
+        feedback_subject_placeholder: 'Was beschäftigt dich?',
+        feedback_description_placeholder: 'Beschreibe deine Idee oder dein Problem...',
+
+        // Warnings
+        no_environment_configured: 'Keine Umgebung konfiguriert.',
+
+        // Coming Soon
+        coming_soon: 'Demnächst Verfügbar',
+        feature_under_development: 'Diese Funktion wird derzeit entwickelt.',
+        notify_me: 'Benachrichtige Mich',
+        back_to_dashboard: 'Zurück zum Dashboard',
     }
 };
 

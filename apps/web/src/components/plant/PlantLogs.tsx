@@ -2,13 +2,12 @@ import { useState, useEffect } from 'react';
 import api from '../../lib/api';
 import { Plus, Droplets, Scissors, AlertCircle, Edit3 } from 'lucide-react';
 import { format } from 'date-fns';
-import { Modal } from '../ui/Modal';
-import { Input, Select } from '../ui/Form';
-import { useForm } from 'react-hook-form';
 import { useLanguage } from '../../context/LanguageContext';
+import { AddLogModal } from './AddLogModal';
 
 interface PlantLogsProps {
     plantId: string;
+    plant?: any;
 }
 
 const LogTypeIcon = ({ type }: { type: string }) => {
@@ -21,21 +20,11 @@ const LogTypeIcon = ({ type }: { type: string }) => {
     }
 };
 
-export const PlantLogs = ({ plantId }: PlantLogsProps) => {
+export const PlantLogs = ({ plantId, plant }: PlantLogsProps) => {
     const [logs, setLogs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
     const { t } = useLanguage();
-
-    const { register, handleSubmit, reset } = useForm({
-        defaultValues: {
-            type: 'NOTE',
-            title: '',
-            content: '',
-            logged_at: new Date().toISOString().split('T')[0] // Default to today
-        }
-    });
 
     const fetchLogs = async () => {
         try {
@@ -52,22 +41,11 @@ export const PlantLogs = ({ plantId }: PlantLogsProps) => {
         fetchLogs();
     }, [plantId]);
 
-    const onSubmit = async (data: any) => {
-        setSubmitting(true);
-        try {
-            await api.post(`/plants/${plantId}/logs`, {
-                ...data,
-                logged_at: new Date(data.logged_at).toISOString()
-            });
-            await fetchLogs();
-            setIsModalOpen(false);
-            reset();
-        } catch (e) {
-            console.error(e);
-            alert(t('failed_add_log'));
-        } finally {
-            setSubmitting(false);
-        }
+    const getSuggestedType = () => {
+        if (!plant) return 'NOTE';
+        if (plant.phase === 'VEGETATIVE') return 'WATER';
+        if (plant.phase === 'FLOWERING') return 'NUTRIENT';
+        return 'NOTE';
     };
 
     return (
@@ -109,51 +87,13 @@ export const PlantLogs = ({ plantId }: PlantLogsProps) => {
                 )}
             </div>
 
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={t('new_log_entry')}>
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <Select
-                            label={t('type') || 'Type'}
-                            {...register('type')}
-                            options={[
-                                { value: 'NOTE', label: t('type_note') },
-                                { value: 'WATER', label: t('type_watering') },
-                                { value: 'NUTRIENT', label: t('type_feeding') },
-                                { value: 'PRUNE', label: t('type_prune') },
-                                { value: 'ISSUE', label: t('type_issue') },
-                                { value: 'PHASE_CHANGE', label: t('type_phase_change') }
-                            ]}
-                        />
-                        <Input
-                            type="date"
-                            label={t('date')}
-                            {...register('logged_at')}
-                        />
-                    </div>
-
-                    <Input
-                        label={t('title_optional')}
-                        placeholder={t('log_title_placeholder')}
-                        {...register('title')}
-                    />
-
-                    <div className="w-full">
-                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('details') || 'Details'}</label>
-                        <textarea
-                            {...register('content')}
-                            className="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all h-32 resize-none"
-                            placeholder={t('log_details_placeholder')}
-                        />
-                    </div>
-
-                    <div className="pt-2 flex justify-end space-x-3">
-                        <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg">{t('cancel')}</button>
-                        <button type="submit" disabled={submitting} className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg">
-                            {submitting ? t('saving') : t('save_entry')}
-                        </button>
-                    </div>
-                </form>
-            </Modal>
+            <AddLogModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                plantId={plantId}
+                onSuccess={fetchLogs}
+                initialType={getSuggestedType()}
+            />
         </div>
     );
 };

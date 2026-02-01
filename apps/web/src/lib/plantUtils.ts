@@ -15,6 +15,14 @@
  * @param startDate The date the plant was started
  * @returns A number between 0 and 100 representing the progress percentage
  */
+export const PHASE_THRESHOLDS = {
+    GERMINATION: 10,
+    VEGETATIVE: 50,
+    FLOWERING: 90,
+    DRYING: 95,
+    FINISHED: 100
+};
+
 export const calculatePlantProgress = (
     phase: string,
     plantType: string,
@@ -26,8 +34,8 @@ export const calculatePlantProgress = (
     const start = new Date(startDate);
     const age = Math.floor((new Date().getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
 
-    if (phase === 'FINISHED' || phase === 'CURED') return 100;
-    if (phase === 'DRYING') return 95;
+    if (phase === 'FINISHED' || phase === 'CURED') return PHASE_THRESHOLDS.FINISHED;
+    if (phase === 'DRYING') return PHASE_THRESHOLDS.DRYING;
 
     // Autoflowers have a somewhat fixed lifecycle (approx 90-100 days)
     if (plantType === 'AUTOFLOWER') {
@@ -38,15 +46,65 @@ export const calculatePlantProgress = (
     switch (phase) {
         case 'GERMINATION':
             // Assumes 2 weeks max for germination phase
-            return Math.min(10, Math.round((age / 14) * 10));
+            return Math.min(PHASE_THRESHOLDS.GERMINATION, Math.round((age / 14) * PHASE_THRESHOLDS.GERMINATION));
         case 'VEGETATIVE':
             // Assumes approx 2 months veg (very variable, but good baseline)
-            // Starts at 10%, adds up to 40% more
-            return Math.min(50, 10 + Math.round(((age - 14) / 60) * 40));
+            // Starts at GERMINATION end (10%), adds up to VEGETATIVE end (50%)
+            const vegRange = PHASE_THRESHOLDS.VEGETATIVE - PHASE_THRESHOLDS.GERMINATION;
+            return Math.min(PHASE_THRESHOLDS.VEGETATIVE, PHASE_THRESHOLDS.GERMINATION + Math.round(((age - 14) / 60) * vegRange));
         case 'FLOWERING':
-            // Starts at 50%, adds up to 40% more over approx 9-10 weeks
-            return Math.min(90, 50 + Math.round(((age - 74) / 70) * 40));
+            // Starts at VEGETATIVE end (50%), adds up to FLOWERING end (90%)
+            const flowerRange = PHASE_THRESHOLDS.FLOWERING - PHASE_THRESHOLDS.VEGETATIVE;
+            return Math.min(PHASE_THRESHOLDS.FLOWERING, PHASE_THRESHOLDS.VEGETATIVE + Math.round(((age - 74) / 70) * flowerRange));
         default:
             return 0;
     }
+};
+
+/**
+ * Estimates the yield of a plant in grams.
+ * 
+ * If the plant has a manually set estimated_yield_grams, it uses that.
+ * Otherwise, it estimates based on plant type and status.
+ * 
+ * Baselines:
+ * - AUTOFLOWER: 50g
+ * - PHOTOPERIOD: 100g
+ * 
+ * Adjustments:
+ * - ISSUES: -20%
+ * - SICK: -50%
+ * - DEAD: 0g
+ * 
+ * @param plant The plant object
+ * @returns Estimated yield in grams
+ */
+export const calculateYieldEstimate = (plant: any): number => {
+    if (plant.estimated_yield_grams) {
+        return plant.estimated_yield_grams;
+    }
+
+    if (plant.status === 'DEAD') return 0;
+
+    let baseYield = 0;
+    if (plant.plant_type === 'AUTOFLOWER') {
+        baseYield = 50;
+    } else {
+        baseYield = 100; // Conservative estimate for photoperiods or unknown
+    }
+
+    if (plant.status === 'ISSUES') {
+        baseYield *= 0.8;
+    } else if (plant.status === 'SICK') {
+        baseYield *= 0.5;
+    }
+
+    return Math.round(baseYield);
+};
+
+export const formatYield = (grams: number): string => {
+    if (grams >= 1000) {
+        return `${(grams / 1000).toFixed(2)} kg`;
+    }
+    return `${Math.round(grams)} g`;
 };

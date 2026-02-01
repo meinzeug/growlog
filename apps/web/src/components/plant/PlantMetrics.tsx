@@ -10,6 +10,7 @@ import { useForm } from 'react-hook-form';
 import { SliderControl } from '../ui/SliderControl';
 import clsx from 'clsx';
 import { useLanguage } from '../../context/LanguageContext';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
 
 interface PlantMetricsProps {
     plantId: string;
@@ -68,9 +69,24 @@ export const PlantMetrics = ({ plantId }: PlantMetricsProps) => {
         }
     };
 
+    // Smart Defaults: Pre-fill form with last recorded values
+    useEffect(() => {
+        if (isModalOpen && metrics.length > 0) {
+            const latest = metrics[metrics.length - 1];
+            if (latest) {
+                setValue('height_cm', latest.height_cm ? Number(latest.height_cm) + 1 : 0);
+                setValue('ph', latest.ph ? Number(latest.ph) : 6.0);
+                setValue('ec', latest.ec ? Number(latest.ec) : 1.0);
+                setValue('temperature_c', latest.temperature_c ? Number(latest.temperature_c) : 24);
+                setValue('humidity_pct', latest.humidity_pct ? Number(latest.humidity_pct) : 60);
+                // Recorded_at stays default (today)
+            }
+        }
+    }, [isModalOpen, metrics, setValue]);
+
     const formatDate = (dateStr: string) => format(new Date(dateStr), 'MMM d');
 
-    if (loading) return <div className="text-center py-8 text-slate-400">{t('loading_metrics')}</div>;
+    if (loading) return <div className="py-20"><LoadingSpinner message={t('loading_metrics')} /></div>;
 
     const hasData = metrics.length > 0;
 

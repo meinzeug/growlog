@@ -8,6 +8,7 @@ import { useForm } from 'react-hook-form';
 import { clsx } from 'clsx';
 import { format } from 'date-fns';
 import { useLanguage } from '../context/LanguageContext';
+import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 
 export const GrowDetail = () => {
     const { id } = useParams();
@@ -73,7 +74,7 @@ export const GrowDetail = () => {
         }
     };
 
-    if (loading) return <div className="p-8">{t('loading_grow_details')}</div>;
+    if (loading) return <LoadingSpinner fullScreen />;
     if (!grow) return null;
 
     return (
@@ -155,10 +156,15 @@ export const GrowDetail = () => {
                                     </div>
                                 ))
                             ) : (
-                                <div className="p-6 text-center text-sm text-slate-400">
-                                    {t('no_environments')}
-                                    <br />
-                                    <button onClick={() => setIsEnvModalOpen(true)} className="text-green-600 hover:underline mt-1">{t('add_tent_room')}</button>
+                                <div className="p-8 text-center bg-slate-50 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center">
+                                    <Thermometer size={32} className="text-slate-300 mb-2" />
+                                    <p className="text-slate-500 font-medium mb-3">{t('no_environment_configured')}</p>
+                                    <button
+                                        onClick={() => setIsEnvModalOpen(true)}
+                                        className="text-green-600 font-bold text-sm hover:underline hover:text-green-700 bg-white border border-slate-200 px-4 py-2 rounded-lg shadow-sm hover:shadow"
+                                    >
+                                        {t('add_tent_room')}
+                                    </button>
                                 </div>
                             )}
                         </div>

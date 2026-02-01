@@ -49,8 +49,13 @@ router.get('/overview', authenticateToken, async (req: Request, res: Response) =
             }
         });
 
-        // 2. Environment Data (Get latest metric from any active plant)
-        const latestMetric = await prisma.plantMetric.findFirst({
+        // 2. Environment Data (Prefer EnvironmentMetric, fallback to PlantMetric)
+        const latestEnvMetric = await prisma.environmentMetric.findFirst({
+            where: { grow: { owner_user_id: userId as string } },
+            orderBy: { recorded_at: 'desc' }
+        });
+
+        const latestPlantMetric = await prisma.plantMetric.findFirst({
             where: {
                 plant: { owner_user_id: userId as string, status: { notIn: ['HARVESTED', 'DEAD'] } }
             },
@@ -58,11 +63,11 @@ router.get('/overview', authenticateToken, async (req: Request, res: Response) =
             select: { temperature_c: true, humidity_pct: true, recorded_at: true }
         });
 
-        // Fallback or targets if needed, but for now just use latest metric or null
         const environment = {
-            temperature: latestMetric?.temperature_c || 24, // Default ideal if no data
-            humidity: latestMetric?.humidity_pct || 60,
-            lastUpdated: latestMetric?.recorded_at || new Date()
+            temperature: latestEnvMetric?.temperature_c || latestPlantMetric?.temperature_c || 24,
+            humidity: latestEnvMetric?.humidity_pct || latestPlantMetric?.humidity_pct || 60,
+            co2: latestEnvMetric?.co2_ppm || 400,
+            lastUpdated: latestEnvMetric?.recorded_at || latestPlantMetric?.recorded_at || new Date()
         };
 
         // 3. Growth Data (Last 5 weeks average height)

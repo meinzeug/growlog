@@ -5,6 +5,7 @@ import { Camera, Upload, Loader2, Calendar, Grip } from 'lucide-react';
 import { format, differenceInWeeks } from 'date-fns';
 import clsx from 'clsx';
 import { useLanguage } from '../../context/LanguageContext';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
 
 interface PlantPhotosProps {
     plantId: string;
@@ -17,7 +18,7 @@ export const PlantPhotos = ({ plantId }: PlantPhotosProps) => {
     const [viewMode, setViewMode] = useState<'grid' | 'timeline'>('timeline');
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [plantStartDate, setPlantStartDate] = useState<Date | null>(null);
-    const { t } = useLanguage();
+    const { t, dateLocale } = useLanguage();
 
     const fetchPhotos = async () => {
         try {
@@ -120,7 +121,7 @@ export const PlantPhotos = ({ plantId }: PlantPhotosProps) => {
             </div>
 
             {loading ? (
-                <div className="text-center py-12 text-slate-400">{t('loading_photos')}</div>
+                <div className="py-20"><LoadingSpinner message={t('loading_photos')} /></div>
             ) : photos.length === 0 ? (
                 <div className="text-center py-12 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
                     <Camera size={48} className="mx-auto text-slate-300 mb-4" />
@@ -138,7 +139,7 @@ export const PlantPhotos = ({ plantId }: PlantPhotosProps) => {
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
                                 <p className="text-white text-xs font-medium">
-                                    {format(new Date(photo.taken_at || photo.created_at), 'MMM d, yyyy')}
+                                    {format(new Date(photo.taken_at || photo.created_at), 'MMM d, yyyy', { locale: dateLocale })}
                                 </p>
                             </div>
                         </div>
@@ -157,7 +158,7 @@ export const PlantPhotos = ({ plantId }: PlantPhotosProps) => {
 
                                 <div className="mb-4">
                                     <h4 className="font-bold text-slate-800 flex items-center gap-2">
-                                        {format(new Date(dateStr), 'MMMM d, yyyy')}
+                                        {format(new Date(dateStr), 'MMMM d, yyyy', { locale: dateLocale })}
                                         {weekNum !== null && (
                                             <span className="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">{t('week')} {weekNum}</span>
                                         )}

@@ -9,6 +9,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import clsx from 'clsx';
 import { useLanguage } from '../context/LanguageContext';
+import { calculatePlantProgress, PHASE_THRESHOLDS, calculateYieldEstimate, formatYield } from '../lib/plantUtils';
+import { useSettings } from '../context/SettingsContext';
 
 // Shared types (ideally import from @growlog/shared)
 
@@ -22,21 +24,35 @@ type FormData = z.infer<typeof schema>;
 
 export const Grows = () => {
     const { t } = useLanguage();
+    const { settings } = useSettings();
     const [grows, setGrows] = useState<any[]>([]);
+
+    // Global Yield Calculation
+    const totalYield = grows.reduce((acc, grow) =>
+        acc + (grow.plants?.reduce((sum: number, p: any) => sum + calculateYieldEstimate(p), 0) || 0)
+        , 0);
+
+    const [envStats, setEnvStats] = useState<{ temperature: number; humidity: number; co2?: number } | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [loading, setLoading] = useState(false);
 
     const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
         resolver: zodResolver(schema),
         defaultValues: {
-            location_type: 'INDOOR' // Most home growers operate indoors
+            location_type: settings.defaultGrowLocation || 'INDOOR'
         }
     });
 
     const fetchGrows = async () => {
         try {
-            const res = await api.get('/grows');
-            setGrows(res.data);
+            const [growsRes, overviewRes] = await Promise.all([
+                api.get('/grows'),
+                api.get('/overview')
+            ]);
+            setGrows(growsRes.data);
+            if (overviewRes.data?.environment) {
+                setEnvStats(overviewRes.data.environment);
+            }
         } catch (e) {
             console.error(e);
         }
@@ -80,7 +96,14 @@ export const Grows = () => {
                     <p className="text-slate-500">{t('grows_subtitle')}</p>
                 </div>
                 <button
-                    onClick={() => setIsModalOpen(true)}
+                    onClick={() => {
+                        reset({
+                            name: '',
+                            location_type: settings.defaultGrowLocation || 'INDOOR',
+                            notes: ''
+                        });
+                        setIsModalOpen(true);
+                    }}
                     className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm"
                 >
                     <Plus size={20} />
@@ -89,7 +112,7 @@ export const Grows = () => {
             </div>
 
             {/* Dashboard Headers */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between h-28">
                     <div className="flex justify-between items-start">
                         <span className="text-slate-500 font-medium text-xs uppercase tracking-wider">{t('total_plants')}</span>
@@ -97,7 +120,22 @@ export const Grows = () => {
                     </div>
                     <div className="flex items-baseline gap-2">
                         <span className="text-3xl font-bold text-slate-900">{grows.reduce((acc, g) => acc + (g.plants?.length || 0), 0)}</span>
-                        <span className="text-xs text-green-600 font-bold bg-green-50 px-1.5 py-0.5 rounded-md">+4 {t('week')}</span>
+                        {(() => {
+                            const now = Date.now();
+                            const oneWeek = 7 * 24 * 60 * 60 * 1000;
+                            const totalWeeks = grows.reduce((acc, g) => acc + (now - new Date(g.created_at).getTime()) / oneWeek, 0);
+                            const avgWeeks = grows.length > 0 ? Math.round(totalWeeks / grows.length) : 0;
+
+                            return (
+                                <span className={clsx("text-xs font-bold px-1.5 py-0.5 rounded-md",
+                                    avgWeeks < 8 ? "text-green-600 bg-green-50" :
+                                        avgWeeks < 16 ? "text-yellow-600 bg-yellow-50" :
+                                            "text-orange-600 bg-orange-50"
+                                )}>
+                                    {avgWeeks} {t('weeks')} (avg)
+                                </span>
+                            );
+                        })()}
                     </div>
                 </div>
 
@@ -107,7 +145,7 @@ export const Grows = () => {
                         <Thermometer size={18} className="text-orange-500" />
                     </div>
                     <div className="flex items-baseline gap-2">
-                        <span className="text-3xl font-bold text-slate-900">24°C</span>
+                        <span className="text-3xl font-bold text-slate-900">{envStats?.temperature ?? '--'}°C</span>
                         <span className="text-xs text-slate-400">{t('daytime')}</span>
                     </div>
                 </div>
@@ -118,8 +156,19 @@ export const Grows = () => {
                         <Droplets size={18} className="text-blue-500" />
                     </div>
                     <div className="flex items-baseline gap-2">
-                        <span className="text-3xl font-bold text-slate-900">55%</span>
+                        <span className="text-3xl font-bold text-slate-900">{envStats?.humidity ?? '--'}%</span>
                         <span className="text-xs text-slate-400">RH</span>
+                    </div>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between h-28">
+                    <div className="flex justify-between items-start">
+                        <span className="text-slate-500 font-medium text-xs uppercase tracking-wider">CO2 (Avg)</span>
+                        <Wind size={18} className="text-slate-500" />
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                        <span className="text-3xl font-bold text-slate-900">{envStats?.co2 ?? '--'}</span>
+                        <span className="text-xs text-slate-400">ppm</span>
                     </div>
                 </div>
 
@@ -129,8 +178,8 @@ export const Grows = () => {
                         <Calendar size={18} className="text-purple-500" />
                     </div>
                     <div className="flex items-baseline gap-2">
-                        <span className="text-3xl font-bold text-slate-900">12 Days</span>
-                        <span className="text-xs text-slate-400">{t('next_crop')}</span>
+                        <span className="text-3xl font-bold text-slate-900">{totalYield > 0 ? `~${formatYield(totalYield)}` : '--'}</span>
+                        <span className="text-xs text-slate-400">{t('total_potential')}</span>
                     </div>
                 </div>
             </div>
@@ -143,17 +192,11 @@ export const Grows = () => {
                     // Real Yield Estimation (Sum of plant estimates)
                     const estimatedYield = grow.plants?.reduce((sum: number, p: any) => sum + (p.estimated_yield_grams || 0), 0) || 0;
 
-                    // Real Progress based on Plant Phases
-                    const phaseWeights: Record<string, number> = {
-                        'GERMINATION': 10,
-                        'VEGETATIVE': 40,
-                        'FLOWERING': 70,
-                        'DRYING': 90,
-                        'CURED': 95,
-                        'FINISHED': 100
-                    };
-                    const totalPhaseScore = grow.plants?.reduce((sum: number, p: any) => sum + (phaseWeights[p.phase] || 0), 0) || 0;
-                    const progress = plantCount > 0 ? totalPhaseScore / plantCount : 0;
+                    // Real Progress based on Plant Phases using utility
+                    const totalProgress = grow.plants?.reduce((sum: number, p: any) =>
+                        sum + calculatePlantProgress(p.phase, p.plant_type, p.start_date || p.created_at), 0) || 0;
+
+                    const progress = plantCount > 0 ? totalProgress / plantCount : 0;
 
                     const primaryEnv = grow.environments?.[0];
 
@@ -212,7 +255,9 @@ export const Grows = () => {
                                         <div className="bg-slate-50 p-3 rounded-lg">
                                             <span className="block text-xs text-slate-500 uppercase font-bold mb-1">{t('stage')}</span>
                                             <span className="text-lg font-bold text-slate-800">
-                                                {progress < 20 ? t('germination') : progress < 60 ? t('veg') : t('flower')}
+                                                {progress < PHASE_THRESHOLDS.GERMINATION ? t('germination') :
+                                                    progress < PHASE_THRESHOLDS.VEGETATIVE ? t('veg') :
+                                                        progress < PHASE_THRESHOLDS.FLOWERING ? t('flower') : t('harvest')}
                                             </span>
                                         </div>
                                     </div>
@@ -220,10 +265,10 @@ export const Grows = () => {
                                     {/* Timeline Progress */}
                                     <div className="mb-2">
                                         <div className="flex justify-between text-xs font-bold text-slate-500 mb-2">
-                                            <span className={progress < 25 ? 'text-green-600' : ''}>{t('germination')}</span>
-                                            <span className={progress >= 25 && progress < 50 ? 'text-green-600' : ''}>{t('veg')}</span>
-                                            <span className={progress >= 50 && progress < 90 ? 'text-green-600' : ''}>{t('flower')}</span>
-                                            <span className={progress >= 90 ? 'text-green-600' : ''}>{t('harvest')}</span>
+                                            <span className={progress < PHASE_THRESHOLDS.GERMINATION ? 'text-green-600' : ''}>{t('germination')}</span>
+                                            <span className={progress >= PHASE_THRESHOLDS.GERMINATION && progress < PHASE_THRESHOLDS.VEGETATIVE ? 'text-green-600' : ''}>{t('veg')}</span>
+                                            <span className={progress >= PHASE_THRESHOLDS.VEGETATIVE && progress < PHASE_THRESHOLDS.FLOWERING ? 'text-green-600' : ''}>{t('flower')}</span>
+                                            <span className={progress >= PHASE_THRESHOLDS.FLOWERING ? 'text-green-600' : ''}>{t('harvest')}</span>
                                         </div>
                                         <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden relative">
                                             <div className="absolute top-0 bottom-0 left-0 bg-green-500 rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
@@ -288,7 +333,7 @@ export const Grows = () => {
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="mb-6 text-sm text-slate-400 italic">No environment configured.</div>
+                                        <div className="mb-6 text-sm text-slate-400 italic">{t('no_environment_configured')}</div>
                                     )}
 
                                     <div className="mt-auto space-y-2">
@@ -347,7 +392,7 @@ export const Grows = () => {
                         <textarea
                             {...register('notes')}
                             className="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all h-24 resize-none"
-                            placeholder="Tent size, equipment details..."
+                            placeholder={t('grow_description_placeholder')}
                         />
                     </div>
 

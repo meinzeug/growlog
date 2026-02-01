@@ -3,6 +3,7 @@ import { MessageSquarePlus, X, Mic, Send, Bug, Lightbulb, Loader2 } from 'lucide
 import { useForm } from 'react-hook-form';
 import clsx from 'clsx';
 import api from '../lib/api';
+import { useLanguage } from '../context/LanguageContext';
 
 declare global {
     interface Window {
@@ -11,6 +12,7 @@ declare global {
 }
 
 export const FeedbackFab = () => {
+    const { t } = useLanguage();
     const [isOpen, setIsOpen] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
     const [isListening, setIsListening] = useState(false);
@@ -161,7 +163,7 @@ export const FeedbackFab = () => {
                                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Title</label>
                                         <input
                                             {...register('title', { required: true })}
-                                            placeholder="What's on your mind?"
+                                            placeholder={t('feedback_subject_placeholder')}
                                             className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-sm"
                                         />
                                     </div>
@@ -184,7 +186,7 @@ export const FeedbackFab = () => {
                                         <textarea
                                             {...register('description', { required: true })}
                                             rows={4}
-                                            placeholder="Describe your idea or issue..."
+                                            placeholder={t('feedback_description_placeholder')}
                                             className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-sm resize-none"
                                         />
                                     </div>

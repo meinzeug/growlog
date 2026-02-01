@@ -12,7 +12,7 @@ interface HeaderProps {
 }
 
 export const Header = ({ onMenuClick }: HeaderProps) => {
-    const { user, logout } = useAuth();
+    const { user, logout, loading: authLoading } = useAuth();
     const { t } = useLanguage();
     const { notifications, unreadCount, markAllAsRead, removeNotification } = useNotifications();
     const navigate = useNavigate();
@@ -174,9 +174,13 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
                         className="flex items-center gap-3 p-1 pl-2 pr-1 rounded-full border border-slate-200 hover:border-green-200 hover:shadow-md hover:shadow-green-100/50 transition-all bg-white group focus:ring-2 focus:ring-green-500/20 outline-none"
                     >
                         <div className="hidden md:flex flex-col items-end mr-1 text-right">
-                            <span className="text-xs font-bold text-slate-700 group-hover:text-green-700 transition-colors">
-                                {user?.email ? user.email.split('@')[0] : 'Grower'}
-                            </span>
+                            {authLoading ? (
+                                <div className="h-4 w-20 bg-slate-200 rounded animate-pulse mb-1"></div>
+                            ) : (
+                                <span className="text-xs font-bold text-slate-700 group-hover:text-green-700 transition-colors">
+                                    {user?.email ? user.email.split('@')[0] : t('grower')}
+                                </span>
+                            )}
                             <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full mt-0.5 group-hover:bg-green-50 group-hover:text-green-600 transition-colors">Pro Member</span>
                         </div>
                         <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-green-500 to-emerald-400 ring-2 ring-white shadow-sm flex items-center justify-center text-white font-bold text-sm relative overflow-hidden group-hover:scale-105 transition-transform">
@@ -194,8 +198,8 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
                                         {(user?.email?.[0] || 'G').toUpperCase()}
                                     </div>
                                     <div className="min-w-0">
-                                        <p className="text-sm font-bold text-slate-900 truncate">{user?.email ? user.email.split('@')[0] : 'User'}</p>
-                                        <p className="text-xs text-slate-500 truncate">{user?.email || 'grower@example.com'}</p>
+                                        <p className="text-sm font-bold text-slate-900 truncate">{user?.email ? user.email.split('@')[0] : t('grower')}</p>
+                                        <p className="text-xs text-slate-500 truncate">{user?.email || t('email_placeholder')}</p>
                                     </div>
                                 </div>
                                 <div className="mt-2 text-xs text-center bg-green-50 text-green-700 py-1 rounded-md font-medium border border-green-100">

@@ -1,34 +1,19 @@
 import { useState, useEffect } from 'react';
-import { Bell, User, Save, Moon, Sun } from 'lucide-react';
+import { Bell, User, Moon, Sun, Leaf } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../context/AuthContext';
-import api from '../lib/api';
+import { useSettings } from '../context/SettingsContext';
 
 export const Settings = () => {
     const { user } = useAuth();
+    const { settings, updateSettings, isLoading } = useSettings();
     const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-    const [defaultReminderTime, setDefaultReminderTime] = useState(15); // Minutes
-    const [darkMode, setDarkMode] = useState(false);
-    const [emailAlerts, setEmailAlerts] = useState(true);
 
     useEffect(() => {
         // Check current permission status
         if ('Notification' in window) {
             setNotificationsEnabled(Notification.permission === 'granted');
         }
-
-        const fetchPreferences = async () => {
-            try {
-                const res = await api.get('/profile/preferences');
-                const prefs = res.data || {};
-                if (prefs.defaultReminderTime !== undefined) setDefaultReminderTime(prefs.defaultReminderTime);
-                if (prefs.darkMode !== undefined) setDarkMode(prefs.darkMode);
-                if (prefs.emailAlerts !== undefined) setEmailAlerts(prefs.emailAlerts);
-            } catch (e) {
-                console.error("Failed to load preferences", e);
-            }
-        };
-        fetchPreferences();
     }, []);
 
     const requestNotificationPermission = async () => {
@@ -40,22 +25,9 @@ export const Settings = () => {
         setNotificationsEnabled(permission === 'granted');
     };
 
-    const savePreferences = async () => {
-        const preferences = {
-            defaultReminderTime,
-            darkMode,
-            emailAlerts
-        };
-
-        try {
-            await api.patch('/profile/preferences', { preferences });
-            localStorage.setItem('growlog_theme', darkMode ? 'dark' : 'light'); // Keep local sync for immediate boot
-            alert('Preferences saved successfully!');
-        } catch (e) {
-            console.error("Failed to save preferences", e);
-            alert('Failed to save settings.');
-        }
-    };
+    if (isLoading) {
+        return <div className="p-8 text-center text-slate-500">Loading settings...</div>;
+    }
 
     return (
         <div className="space-y-6 max-w-3xl">
@@ -63,6 +35,36 @@ export const Settings = () => {
                 <h1 className="text-3xl font-bold text-slate-800">Settings</h1>
                 <p className="text-slate-500 mt-2">Manage your account preferences and notification settings.</p>
             </header>
+
+            {/* Account Settings */}
+            <section className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                <div className="p-6 border-b border-slate-100 flex items-center gap-3">
+                    <div className="p-2 bg-slate-50 rounded-lg">
+                        <User className="text-slate-600" size={24} />
+                    </div>
+                    <div>
+                        <h2 className="text-lg font-semibold text-slate-800">Account</h2>
+                        <p className="text-sm text-slate-500">Update your personal information.</p>
+                    </div>
+                </div>
+                <div className="p-6 space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
+                        <input
+                            type="email"
+                            value={user?.email}
+                            disabled
+                            className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-500"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
+                        <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">
+                            {user?.role}
+                        </span>
+                    </div>
+                </div>
+            </section>
 
             {/* Notification Management */}
             <section className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
@@ -97,8 +99,8 @@ export const Settings = () => {
                             <p className="text-sm text-slate-500">How many minutes before a task to notify you.</p>
                         </div>
                         <select
-                            value={defaultReminderTime}
-                            onChange={(e) => setDefaultReminderTime(Number(e.target.value))}
+                            value={settings.defaultReminderTime}
+                            onChange={(e) => updateSettings({ defaultReminderTime: Number(e.target.value) })}
                             className="border border-slate-300 rounded-lg px-3 py-2 bg-white outline-none focus:ring-2 focus:ring-blue-500"
                         >
                             <option value={0}>At time of event</option>
@@ -117,8 +119,8 @@ export const Settings = () => {
                         <label className="relative inline-flex items-center cursor-pointer">
                             <input
                                 type="checkbox"
-                                checked={emailAlerts}
-                                onChange={(e) => setEmailAlerts(e.target.checked)}
+                                checked={settings.emailAlerts}
+                                onChange={(e) => updateSettings({ emailAlerts: e.target.checked })}
                                 className="sr-only peer"
                             />
                             <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
@@ -127,41 +129,56 @@ export const Settings = () => {
                 </div>
             </section>
 
-            {/* Account Settings */}
+            {/* Smart Defaults */}
             <section className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
                 <div className="p-6 border-b border-slate-100 flex items-center gap-3">
-                    <div className="p-2 bg-slate-50 rounded-lg">
-                        <User className="text-slate-600" size={24} />
+                    <div className="p-2 bg-green-50 rounded-lg">
+                        <Leaf className="text-green-600" size={24} />
                     </div>
                     <div>
-                        <h2 className="text-lg font-semibold text-slate-800">Account</h2>
-                        <p className="text-sm text-slate-500">Update your personal information.</p>
+                        <h2 className="text-lg font-semibold text-slate-800">Smart Defaults</h2>
+                        <p className="text-sm text-slate-500">Pre-fill forms with your preferred settings.</p>
                     </div>
                 </div>
-                <div className="p-6 space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
-                        <input
-                            type="email"
-                            value={user?.email}
-                            disabled
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-500"
-                        />
+                <div className="p-6 space-y-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <label className="font-medium text-slate-700">Preferred Plant Type</label>
+                            <p className="text-sm text-slate-500">Default selection when creating new plants.</p>
+                        </div>
+                        <select
+                            value={settings.defaultPlantType}
+                            onChange={(e) => updateSettings({ defaultPlantType: e.target.value as any })}
+                            className="border border-slate-300 rounded-lg px-3 py-2 bg-white outline-none focus:ring-2 focus:ring-green-500"
+                        >
+                            <option value="PHOTOPERIOD">Photoperiod</option>
+                            <option value="AUTOFLOWER">Autoflower</option>
+                        </select>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
-                        <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">
-                            {user?.role}
-                        </span>
+
+                    <div className="flex items-center justify-between pt-4 border-t border-slate-50">
+                        <div>
+                            <label className="font-medium text-slate-700">Default Grow Location</label>
+                            <p className="text-sm text-slate-500">Default environment for new grows.</p>
+                        </div>
+                        <select
+                            value={settings.defaultGrowLocation}
+                            onChange={(e) => updateSettings({ defaultGrowLocation: e.target.value as any })}
+                            className="border border-slate-300 rounded-lg px-3 py-2 bg-white outline-none focus:ring-2 focus:ring-green-500"
+                        >
+                            <option value="INDOOR">Indoor</option>
+                            <option value="OUTDOOR">Outdoor</option>
+                        </select>
                     </div>
                 </div>
             </section>
+
 
             {/* Interface Settings */}
             <section className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
                 <div className="p-6 border-b border-slate-100 flex items-center gap-3">
                     <div className="p-2 bg-amber-50 rounded-lg">
-                        {darkMode ? <Moon className="text-amber-600" size={24} /> : <Sun className="text-amber-600" size={24} />}
+                        {settings.themeMode === 'dark' ? <Moon className="text-amber-600" size={24} /> : <Sun className="text-amber-600" size={24} />}
                     </div>
                     <div>
                         <h2 className="text-lg font-semibold text-slate-800">Appearance</h2>
@@ -177,8 +194,8 @@ export const Settings = () => {
                         <label className="relative inline-flex items-center cursor-pointer">
                             <input
                                 type="checkbox"
-                                checked={darkMode}
-                                onChange={(e) => setDarkMode(e.target.checked)}
+                                checked={settings.themeMode === 'dark'}
+                                onChange={(e) => updateSettings({ themeMode: e.target.checked ? 'dark' : 'light' })}
                                 className="sr-only peer"
                             />
                             <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-800"></div>
@@ -186,16 +203,6 @@ export const Settings = () => {
                     </div>
                 </div>
             </section>
-
-            <div className="flex justify-end pt-4">
-                <button
-                    onClick={savePreferences}
-                    className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium shadow-sm hover:shadow-md"
-                >
-                    <Save size={18} />
-                    Save Changes
-                </button>
-            </div>
         </div>
     );
 };

@@ -9,6 +9,8 @@ import { feedbackRouter } from '../controllers/feedbackController';
 import { configRouter } from '../controllers/configController';
 
 import { userRouter } from '../controllers/userController';
+import { notificationRouter } from '../controllers/notificationController';
+import { templateRouter } from '../controllers/templateController';
 
 export const apiRouter = Router();
 
@@ -21,3 +23,5 @@ apiRouter.use('/admin', adminRouter);
 apiRouter.use('/', feedbackRouter);
 apiRouter.use('/', configRouter);
 apiRouter.use('/', userRouter);
+apiRouter.use('/', notificationRouter);
+apiRouter.use('/', templateRouter);

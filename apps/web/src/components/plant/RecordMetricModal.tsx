@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import api from '../../lib/api';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Form';
 import { SliderControl } from '../ui/SliderControl';
-import { Ruler, Droplets, Activity, Thermometer } from 'lucide-react';
+import { Ruler, Droplets, Activity, Thermometer, Sun } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
 interface RecordMetricModalProps {
@@ -29,6 +29,18 @@ export const RecordMetricModal = ({ isOpen, onClose, onSuccess, plant }: RecordM
             recorded_at: new Date().toISOString().split('T')[0]
         }
     });
+
+    useEffect(() => {
+        if (isOpen && plant?.latest_record) {
+            const latest = plant.latest_record;
+            setValue('height_cm', latest.height_cm ? Number(latest.height_cm) + 1 : 0);
+            setValue('ph', latest.ph ? Number(latest.ph) : 6.0);
+            setValue('ec', latest.ec ? Number(latest.ec) : 1.0);
+            setValue('temperature_c', latest.temperature_c ? Number(latest.temperature_c) : 24);
+            setValue('humidity_pct', latest.humidity_pct ? Number(latest.humidity_pct) : 60);
+            setValue('light_ppfd', latest.light_ppfd ? Number(latest.light_ppfd) : 0);
+        }
+    }, [isOpen, plant, setValue]);
 
     const onSubmit = async (data: any) => {
         if (!plant?.id) return;
@@ -122,8 +134,8 @@ export const RecordMetricModal = ({ isOpen, onClose, onSuccess, plant }: RecordM
                         min={0}
                         max={2000}
                         step={10}
-                        unit="µmol" // or just scalar
-                        icon={Activity} // Sun would be better but need to import
+                        unit="µmol"
+                        icon={Sun}
                         colorClass="bg-yellow-500"
                     />
                 </div>

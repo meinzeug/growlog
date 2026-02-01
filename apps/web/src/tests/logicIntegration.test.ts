@@ -1,29 +1,29 @@
 import { describe, it, expect } from 'vitest';
 import { calculatePlantProgress } from '../lib/plantUtils';
+import { createPlant } from '../__fixtures__/index';
 
-// Mock data structures resembling API responses
 const mockPlants = [
-    {
+    createPlant({
         id: '1',
         name: 'Auto Blue',
         plant_type: 'AUTOFLOWER',
         phase: 'VEGETATIVE',
         start_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days old
-    },
-    {
+    }),
+    createPlant({
         id: '2',
         name: 'Photo Kush',
         plant_type: 'PHOTOPERIOD',
         phase: 'FLOWERING',
         start_date: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString() // 90 days old
-    },
-    {
+    }),
+    createPlant({
         id: '3',
         name: 'Dead Plant',
         plant_type: 'PHOTOPERIOD',
         phase: 'FINISHED',
         start_date: new Date().toISOString()
-    }
+    })
 ];
 
 describe('Data Flow Logic Integration', () => {

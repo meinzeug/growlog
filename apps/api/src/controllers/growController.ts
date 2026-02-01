@@ -131,6 +131,15 @@ router.get('/grows/:growId/environments', authenticateToken, async (req: Request
     res.json(envs);
 });
 
+// Environment Metric Schema
+const createEnvironmentMetricSchema = z.object({
+    temperature_c: z.number().optional(),
+    humidity_pct: z.number().optional(),
+    co2_ppm: z.number().optional(),
+    vpd: z.number().optional()
+});
+
+// ... existing environment endpoints
 router.post('/grows/:growId/environments', authenticateToken, async (req: Request, res: Response) => {
     const userId = (req as AuthRequest).user?.id!;
     const grow = await prisma.grow.count({ where: { id: req.params.growId, owner_user_id: userId as string } });
@@ -146,6 +155,57 @@ router.post('/grows/:growId/environments', authenticateToken, async (req: Reques
         });
         res.status(201).json(env);
     } catch (error) {
+        res.status(400).json({ error: 'Invalid input' });
+    }
+});
+
+// GET /grows/:id/environment/latest
+router.get('/grows/:id/environment/latest', authenticateToken, async (req: Request, res: Response) => {
+    const userId = (req as AuthRequest).user?.id!;
+
+    // Verify grow ownership
+    const count = await prisma.grow.count({ where: { id: req.params.id, owner_user_id: userId } });
+    if (!count) return res.status(404).json({ error: 'Grow not found' });
+
+    const metric = await prisma.environmentMetric.findFirst({
+        where: { grow_id: req.params.id },
+        orderBy: { recorded_at: 'desc' }
+    });
+
+    res.json(metric || null);
+});
+
+// POST /grows/:id/environment
+router.post('/grows/:id/environment', authenticateToken, async (req: Request, res: Response) => {
+    const userId = (req as AuthRequest).user?.id!;
+
+    // Verify grow ownership
+    const count = await prisma.grow.count({ where: { id: req.params.id, owner_user_id: userId } });
+    if (!count) return res.status(404).json({ error: 'Grow not found' });
+
+    try {
+        const data = createEnvironmentMetricSchema.parse(req.body);
+        // Calculate VPD if temp and humidity present but VPD not provided
+        let { vpd, temperature_c, humidity_pct } = data;
+
+        if (vpd === undefined && temperature_c !== undefined && humidity_pct !== undefined) {
+            const svp = 0.61078 * Math.exp((17.27 * temperature_c) / (temperature_c + 237.3));
+            vpd = Number((svp * (1 - humidity_pct / 100)).toFixed(2));
+        }
+
+        const metric = await prisma.environmentMetric.create({
+            data: {
+                grow_id: req.params.id,
+                temperature_c,
+                humidity_pct,
+                co2_ppm: data.co2_ppm,
+                vpd,
+                recorded_at: new Date()
+            }
+        });
+        res.status(201).json(metric);
+    } catch (e) {
+        console.error(e);
         res.status(400).json({ error: 'Invalid input' });
     }
 });

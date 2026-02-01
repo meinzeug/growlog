@@ -94,6 +94,19 @@ model User {
   photos        PlantPhoto[]
   tasks         Task[]
   preferences   Json? // Store user settings like theme, notifications
+  notifications Notification[]
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  user_id     String
+  title       String
+  message     String
+  type        String   // 'success' | 'info' | 'warning' | 'error'
+  read        Boolean  @default(false)
+  created_at  DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id])
 }
 
 model Grow {
@@ -107,8 +120,21 @@ model Grow {
 
   owner        User          @relation(fields: [owner_user_id], references: [id])
   environments Environment[]
+  environment_metrics EnvironmentMetric[]
   plants       Plant[]
   tasks        Task[]
+}
+
+model EnvironmentMetric {
+  id            String   @id @default(uuid())
+  grow_id       String
+  temperature_c Float?
+  humidity_pct  Float?
+  co2_ppm       Float?
+  vpd           Float?
+  recorded_at   DateTime @default(now())
+
+  grow Grow @relation(fields: [grow_id], references: [id], onDelete: Cascade)
 }
 
 model Environment {
@@ -215,4 +241,16 @@ model PlantMetric {
   notes         String?
 
   plant Plant @relation(fields: [plant_id], references: [id], onDelete: Cascade)
+}
+
+model PlantTemplate {
+  id              String        @id @default(uuid())
+  name            String
+  strain          String?
+  plant_type      PlantTypeEnum @default(UNKNOWN)
+  breeder         String?
+  flowering_weeks Int?
+  description     String?
+  created_at      DateTime      @default(now())
+  updated_at      DateTime      @updatedAt
 }
