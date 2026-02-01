@@ -4,6 +4,7 @@ import api from '../../lib/api';
 import { Camera, Upload, Loader2, Calendar, Grip } from 'lucide-react';
 import { format, differenceInWeeks } from 'date-fns';
 import clsx from 'clsx';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface PlantPhotosProps {
     plantId: string;
@@ -16,16 +17,13 @@ export const PlantPhotos = ({ plantId }: PlantPhotosProps) => {
     const [viewMode, setViewMode] = useState<'grid' | 'timeline'>('timeline');
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [plantStartDate, setPlantStartDate] = useState<Date | null>(null);
+    const { t } = useLanguage();
 
     const fetchPhotos = async () => {
         try {
             const res = await api.get(`/plants/${plantId}/photos`);
             setPhotos(res.data);
 
-            // Allow checking plant start date for "Week X" calculation
-            // Ideally this comes from parent, but let's fetch if needed or assume photos have it?
-            // For now, let's fetch plant details quickly again or rely on photos being present.
-            // Actually, let's just use the photos.
             const plantRes = await api.get(`/plants/${plantId}`);
             if (plantRes.data.start_date) {
                 setPlantStartDate(new Date(plantRes.data.start_date));
@@ -57,7 +55,7 @@ export const PlantPhotos = ({ plantId }: PlantPhotosProps) => {
             await fetchPhotos();
         } catch (e) {
             console.error(e);
-            alert('Upload failed');
+            alert(t('upload_failed'));
         } finally {
             setUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
@@ -84,19 +82,19 @@ export const PlantPhotos = ({ plantId }: PlantPhotosProps) => {
         <div className="space-y-6">
             <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-100">
                 <div className="flex items-center gap-4">
-                    <h3 className="font-bold text-slate-900">Photo Journal</h3>
+                    <h3 className="font-bold text-slate-900">{t('photo_journal')}</h3>
                     <div className="flex bg-slate-100 p-1 rounded-lg">
                         <button
                             onClick={() => setViewMode('timeline')}
                             className={clsx("p-1.5 rounded-md transition-all", viewMode === 'timeline' ? "bg-white shadow text-slate-900" : "text-slate-500 hover:text-slate-700")}
-                            title="Timeline View"
+                            title={t('timeline_view') || "Timeline View"}
                         >
                             <Calendar size={18} />
                         </button>
                         <button
                             onClick={() => setViewMode('grid')}
                             className={clsx("p-1.5 rounded-md transition-all", viewMode === 'grid' ? "bg-white shadow text-slate-900" : "text-slate-500 hover:text-slate-700")}
-                            title="Grid View"
+                            title={t('grid_view') || "Grid View"}
                         >
                             <Grip size={18} />
                         </button>
@@ -116,18 +114,18 @@ export const PlantPhotos = ({ plantId }: PlantPhotosProps) => {
                         className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium"
                     >
                         {uploading ? <Loader2 className="animate-spin" size={20} /> : <Upload size={20} />}
-                        <span>Add Photo</span>
+                        <span>{t('add_photo')}</span>
                     </button>
                 </div>
             </div>
 
             {loading ? (
-                <div className="text-center py-12 text-slate-400">Loading photos...</div>
+                <div className="text-center py-12 text-slate-400">{t('loading_photos')}</div>
             ) : photos.length === 0 ? (
                 <div className="text-center py-12 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
                     <Camera size={48} className="mx-auto text-slate-300 mb-4" />
-                    <p className="font-medium text-slate-600">No photos yet.</p>
-                    <p className="text-sm text-slate-400 mt-1">Visually track your plant's progress.</p>
+                    <p className="font-medium text-slate-600">{t('no_photos_yet')}</p>
+                    <p className="text-sm text-slate-400 mt-1">{t('track_progress')}</p>
                 </div>
             ) : viewMode === 'grid' ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -161,7 +159,7 @@ export const PlantPhotos = ({ plantId }: PlantPhotosProps) => {
                                     <h4 className="font-bold text-slate-800 flex items-center gap-2">
                                         {format(new Date(dateStr), 'MMMM d, yyyy')}
                                         {weekNum !== null && (
-                                            <span className="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">Week {weekNum}</span>
+                                            <span className="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">{t('week')} {weekNum}</span>
                                         )}
                                     </h4>
                                 </div>

@@ -14,7 +14,8 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
     const [language, setLanguage] = useState<LanguageType>('en');
 
     const t = (key: string) => {
-        const value = translations[language][key as keyof typeof translations['en']];
+        // @ts-ignore
+        const value = translations[language][key];
         return value || key;
     };
 

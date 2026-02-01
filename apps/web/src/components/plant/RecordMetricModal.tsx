@@ -20,10 +20,10 @@ export const RecordMetricModal = ({ isOpen, onClose, onSuccess, plant }: RecordM
     const { register, handleSubmit, reset, watch, setValue } = useForm({
         defaultValues: {
             height_cm: 0,
-            ph: 6.0,
-            ec: 1.0,
-            temperature_c: 24,
-            humidity_pct: 60,
+            ph: 6.0,          // Standard hydro/soil pH
+            ec: 1.0,          // Mild nutrient solution
+            temperature_c: 24, // Optimal indoor temp (24C ~ 75F)
+            humidity_pct: 60, // Good vegetative RH
             light_ppfd: 0,
             notes: '',
             recorded_at: new Date().toISOString().split('T')[0]
@@ -43,7 +43,7 @@ export const RecordMetricModal = ({ isOpen, onClose, onSuccess, plant }: RecordM
             reset();
         } catch (e) {
             console.error(e);
-            alert('Failed to save metrics');
+            alert(t('failed_save_metrics'));
         } finally {
             setSubmitting(false);
         }
@@ -116,7 +116,7 @@ export const RecordMetricModal = ({ isOpen, onClose, onSuccess, plant }: RecordM
                         colorClass="bg-cyan-500"
                     />
                     <SliderControl
-                        label="Light Intensity (PPFD) or (Lux/100)"
+                        label={t('light_intensity')}
                         value={watch('light_ppfd') || 0}
                         onChange={(v) => setValue('light_ppfd', v)}
                         min={0}

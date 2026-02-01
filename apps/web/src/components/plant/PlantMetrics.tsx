@@ -9,6 +9,7 @@ import { Input } from '../ui/Form';
 import { useForm } from 'react-hook-form';
 import { SliderControl } from '../ui/SliderControl';
 import clsx from 'clsx';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface PlantMetricsProps {
     plantId: string;
@@ -20,14 +21,15 @@ export const PlantMetrics = ({ plantId }: PlantMetricsProps) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [activeChart, setActiveChart] = useState<'height' | 'ph' | 'ec' | 'environment'>('height');
+    const { t } = useLanguage();
 
     const { register, handleSubmit, reset, watch, setValue } = useForm({
         defaultValues: {
             height_cm: 0,
-            ph: 6.0,
-            ec: 1.0,
-            temperature_c: 24,
-            humidity_pct: 60,
+            ph: 6.0,          // Standard hydro/soil pH
+            ec: 1.0,          // Mild nutrient solution
+            temperature_c: 24, // Optimal indoor temp
+            humidity_pct: 60, // Good vegetative RH
             notes: '',
             recorded_at: new Date().toISOString().split('T')[0]
         }
@@ -60,7 +62,7 @@ export const PlantMetrics = ({ plantId }: PlantMetricsProps) => {
             reset();
         } catch (e) {
             console.error(e);
-            alert('Failed to save metrics');
+            alert(t('failed_save_metrics'));
         } finally {
             setSubmitting(false);
         }
@@ -68,28 +70,28 @@ export const PlantMetrics = ({ plantId }: PlantMetricsProps) => {
 
     const formatDate = (dateStr: string) => format(new Date(dateStr), 'MMM d');
 
-    if (loading) return <div className="text-center py-8 text-slate-400">Loading metrics...</div>;
+    if (loading) return <div className="text-center py-8 text-slate-400">{t('loading_metrics')}</div>;
 
     const hasData = metrics.length > 0;
 
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center px-1">
-                <h3 className="font-bold text-slate-900">Growth Metrics</h3>
+                <h3 className="font-bold text-slate-900">{t('growth_metrics')}</h3>
                 <button
                     onClick={() => setIsModalOpen(true)}
                     className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium"
                 >
                     <Plus size={16} />
-                    <span>Record Data</span>
+                    <span>{t('record_data')}</span>
                 </button>
             </div>
 
             {!hasData ? (
                 <div className="text-center py-12 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
                     <Activity size={48} className="mx-auto text-slate-300 mb-4" />
-                    <p className="font-medium text-slate-600">No metrics recorded yet.</p>
-                    <p className="text-sm text-slate-400 mt-1">Track height, pH, and environmental conditions.</p>
+                    <p className="font-medium text-slate-600">{t('no_metrics_yet')}</p>
+                    <p className="text-sm text-slate-400 mt-1">{t('track_metrics_hint')}</p>
                 </div>
             ) : (
                 <div className="space-y-6">
@@ -98,25 +100,25 @@ export const PlantMetrics = ({ plantId }: PlantMetricsProps) => {
                         <ChartTab
                             active={activeChart === 'height'}
                             onClick={() => setActiveChart('height')}
-                            label="Height"
+                            label={t('height')}
                             icon={Ruler}
                         />
                         <ChartTab
                             active={activeChart === 'ph'}
                             onClick={() => setActiveChart('ph')}
-                            label="pH Level"
+                            label={t('ph_level')}
                             icon={Droplets}
                         />
                         <ChartTab
                             active={activeChart === 'ec'}
                             onClick={() => setActiveChart('ec')}
-                            label="EC / PPM"
+                            label={t('ec_ppm')}
                             icon={Activity}
                         />
                         <ChartTab
                             active={activeChart === 'environment'}
                             onClick={() => setActiveChart('environment')}
-                            label="Environment"
+                            label={t('environment')}
                             icon={Thermometer}
                         />
                     </div>
@@ -140,7 +142,7 @@ export const PlantMetrics = ({ plantId }: PlantMetricsProps) => {
                                 <Legend />
 
                                 {activeChart === 'height' && (
-                                    <Line type="monotone" dataKey="height_cm" name="Height (cm)" stroke="#16a34a" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                                    <Line type="monotone" dataKey="height_cm" name={t('height') + " (cm)"} stroke="#16a34a" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                                 )}
                                 {activeChart === 'ph' && (
                                     <Line type="monotone" dataKey="ph" name="pH" stroke="#0ea5e9" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
@@ -149,8 +151,8 @@ export const PlantMetrics = ({ plantId }: PlantMetricsProps) => {
                                     <Line type="monotone" dataKey="ec" name="EC" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                                 )}
                                 {activeChart === 'environment' && [
-                                    <Line key="temp" type="monotone" dataKey="temperature_c" name="Temp (°C)" stroke="#ef4444" strokeWidth={2} dot={false} />,
-                                    <Line key="hum" type="monotone" dataKey="humidity_pct" name="Humidity (%)" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                                    <Line key="temp" type="monotone" dataKey="temperature_c" name={t('temperature') + " (°C)"} stroke="#ef4444" strokeWidth={2} dot={false} />,
+                                    <Line key="hum" type="monotone" dataKey="humidity_pct" name={t('humidity') + " (%)"} stroke="#3b82f6" strokeWidth={2} dot={false} />
                                 ]}
                             </LineChart>
                         </ResponsiveContainer>
@@ -159,18 +161,18 @@ export const PlantMetrics = ({ plantId }: PlantMetricsProps) => {
                     {/* Recent History Table */}
                     <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
                         <div className="px-6 py-4 border-b border-slate-50 bg-slate-50/50">
-                            <h4 className="font-semibold text-slate-800 text-sm">Recent Entries</h4>
+                            <h4 className="font-semibold text-slate-800 text-sm">{t('recent_entries')}</h4>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm text-left">
                                 <thead className="bg-slate-50 text-slate-500 font-medium">
                                     <tr>
-                                        <th className="px-6 py-3">Date</th>
-                                        <th className="px-6 py-3">Height</th>
-                                        <th className="px-6 py-3">pH</th>
-                                        <th className="px-6 py-3">EC</th>
-                                        <th className="px-6 py-3">Env</th>
-                                        <th className="px-6 py-3">Notes</th>
+                                        <th className="px-6 py-3">{t('date')}</th>
+                                        <th className="px-6 py-3">{t('height')}</th>
+                                        <th className="px-6 py-3">{t('ph_level')}</th>
+                                        <th className="px-6 py-3">{t('ec_ppm')}</th>
+                                        <th className="px-6 py-3">{t('environment') || 'Env'}</th>
+                                        <th className="px-6 py-3">{t('notes')}</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
@@ -197,12 +199,12 @@ export const PlantMetrics = ({ plantId }: PlantMetricsProps) => {
                 </div>
             )}
 
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Record Metrics">
+            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={t('record_metrics')}>
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-h-[70vh] overflow-y-auto p-1">
                     <input type="hidden" {...register('recorded_at')} />
 
                     <SliderControl
-                        label="Height"
+                        label={t('height')}
                         value={watch('height_cm')}
                         onChange={(v) => setValue('height_cm', v)}
                         min={0}
@@ -215,7 +217,7 @@ export const PlantMetrics = ({ plantId }: PlantMetricsProps) => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <SliderControl
-                            label="pH Level"
+                            label={t('ph_level')}
                             value={watch('ph')}
                             onChange={(v) => setValue('ph', v)}
                             min={4.0}
@@ -226,7 +228,7 @@ export const PlantMetrics = ({ plantId }: PlantMetricsProps) => {
                             colorClass="bg-blue-500"
                         />
                         <SliderControl
-                            label="EC / PPM"
+                            label={t('ec_ppm')}
                             value={watch('ec')}
                             onChange={(v) => setValue('ec', v)}
                             min={0}
@@ -239,9 +241,9 @@ export const PlantMetrics = ({ plantId }: PlantMetricsProps) => {
                     </div>
 
                     <div className="space-y-4">
-                        <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Environment</h4>
+                        <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">{t('environment')}</h4>
                         <SliderControl
-                            label="Temperature"
+                            label={t('temperature')}
                             value={watch('temperature_c')}
                             onChange={(v) => setValue('temperature_c', v)}
                             min={10}
@@ -252,7 +254,7 @@ export const PlantMetrics = ({ plantId }: PlantMetricsProps) => {
                             colorClass="bg-red-500"
                         />
                         <SliderControl
-                            label="Humidity"
+                            label={t('humidity')}
                             value={watch('humidity_pct')}
                             onChange={(v) => setValue('humidity_pct', v)}
                             min={0}
@@ -265,15 +267,15 @@ export const PlantMetrics = ({ plantId }: PlantMetricsProps) => {
                     </div>
 
                     <Input
-                        label="Notes (Optional)"
-                        placeholder="Any observations?"
+                        label={t('notes')}
+                        placeholder={t('notes_placeholder')}
                         {...register('notes')}
                     />
 
                     <div className="pt-2 flex justify-end space-x-3">
-                        <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+                        <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg">{t('cancel')}</button>
                         <button type="submit" disabled={submitting} className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg">
-                            {submitting ? 'Saving...' : 'Save Record'}
+                            {submitting ? t('saving') : t('save_record')}
                         </button>
                     </div>
                 </form>

@@ -7,6 +7,8 @@ import { Input, Select } from '../components/ui/Form';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useLanguage } from '../context/LanguageContext';
+import { calculatePlantProgress } from '../lib/plantUtils';
 
 const schema = z.object({
     name: z.string().min(1, 'Name is required'),
@@ -20,22 +22,40 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
+// Template System for Common Strains
+const PLANT_TEMPLATES = [
+    { name: 'Northern Lights Auto', strain: 'Northern Lights', type: 'AUTOFLOWER' },
+    { name: 'White Widow Photo', strain: 'White Widow', type: 'PHOTOPERIOD' },
+    { name: 'Blue Dream Photo', strain: 'Blue Dream', type: 'PHOTOPERIOD' },
+    { name: 'Gorilla Glue Auto', strain: 'Gorilla Glue #4', type: 'AUTOFLOWER' }
+];
+
 export const Plants = () => {
+    const { t } = useLanguage();
     const [plants, setPlants] = useState<any[]>([]);
     const [grows, setGrows] = useState<any[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [isTimelineView, setIsTimelineView] = useState(false);
 
-    const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
+    const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<FormData>({
         resolver: zodResolver(schema),
         defaultValues: {
-            plant_type: 'PHOTOPERIOD',
-            status: 'HEALTHY',
-            phase: 'GERMINATION',
-            start_date: new Date().toISOString().split('T')[0]
+            plant_type: 'PHOTOPERIOD', // Most common type for serious growers
+            status: 'HEALTHY',         // Assume healthy start
+            phase: 'GERMINATION',      // Usually added when popped
+            start_date: new Date().toISOString().split('T')[0] // Default to today
         }
     });
+
+    const applyTemplate = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const template = PLANT_TEMPLATES.find(t => t.name === e.target.value);
+        if (template) {
+            setValue('name', template.name);
+            setValue('strain', template.strain);
+            setValue('plant_type', template.type as any);
+        }
+    };
 
     const fetchData = async () => {
         try {
@@ -73,13 +93,13 @@ export const Plants = () => {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900">My Plants</h1>
-                    <p className="text-slate-500">Track individual plant progress and health.</p>
+                    <h1 className="text-3xl font-bold text-slate-900">{t('plants')}</h1>
+                    <p className="text-slate-500">{t('track_progress')}</p>
                 </div>
                 <button
                     onClick={() => {
                         if (grows.length === 0) {
-                            alert('Please create a Grow first!');
+                            alert(t('create_first_grow'));
                             return;
                         }
                         setIsModalOpen(true);
@@ -87,7 +107,7 @@ export const Plants = () => {
                     className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm"
                 >
                     <Plus size={20} />
-                    <span>New Plant</span>
+                    <span>{t('new')} {t('plants').slice(0, -1)}</span>
                 </button>
             </div>
 
@@ -98,13 +118,13 @@ export const Plants = () => {
                         className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${!isTimelineView ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
                         onClick={() => setIsTimelineView(false)}
                     >
-                        Grid View
+                        {t('grid_view')}
                     </button>
                     <button
                         className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${isTimelineView ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
                         onClick={() => setIsTimelineView(true)}
                     >
-                        Timeline
+                        {t('timeline_view')}
                     </button>
                 </div>
 
@@ -112,13 +132,13 @@ export const Plants = () => {
                 <div className="flex gap-2 filters-scroll overflow-x-auto hide-scrollbar">
                     <button className="flex items-center space-x-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors whitespace-nowrap">
                         <Filter size={14} />
-                        <span>All Grows</span>
+                        <span>{t('all_grows')}</span>
                     </button>
                     <button className="px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors whitespace-nowrap">
-                        Healthy
+                        {t('healthy')}
                     </button>
                     <button className="px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors whitespace-nowrap">
-                        Flowering
+                        {t('flower')}
                     </button>
                 </div>
             </div>
@@ -129,32 +149,7 @@ export const Plants = () => {
                     {plants.map((plant) => {
                         const age = plant.start_date ? Math.floor((new Date().getTime() - new Date(plant.start_date).getTime()) / (1000 * 60 * 60 * 24)) : 0;
                         // Dynamic Progress Calculation
-                        const calculateProgress = () => {
-                            if (plant.phase === 'FINISHED' || plant.phase === 'CURED') return 100;
-                            if (plant.phase === 'DRYING') return 95;
-
-                            // Autoflowers have a somewhat fixed lifecycle (approx 90-100 days)
-                            if (plant.plant_type === 'AUTOFLOWER') {
-                                return Math.min(100, Math.round((age / 90) * 100)); // Assumes 90 day cycle
-                            }
-
-                            // Photoperiods depend heavily on the phase
-                            switch (plant.phase) {
-                                case 'GERMINATION':
-                                    // Assumes 2 weeks max for germination phase
-                                    return Math.min(10, Math.round((age / 14) * 10));
-                                case 'VEGETATIVE':
-                                    // Assumes approx 2 months veg (very variable, but good baseline)
-                                    // Starts at 10%, adds up to 40% more
-                                    return Math.min(50, 10 + Math.round(((age - 14) / 60) * 40));
-                                case 'FLOWERING':
-                                    // Starts at 50%, adds up to 40% more over approx 9-10 weeks
-                                    return Math.min(90, 50 + Math.round(((age - 74) / 70) * 40));
-                                default:
-                                    return 0;
-                            }
-                        };
-                        const progress = Math.max(0, calculateProgress());
+                        const progress = Math.max(0, calculatePlantProgress(plant.phase, plant.plant_type, plant.start_date));
 
                         return (
                             <Link to={`/plants/${plant.id}`} key={plant.id} className="bg-white overflow-hidden rounded-2xl shadow-sm border border-slate-100 hover:shadow-lg transition-all duration-300 group flex flex-col hover:-translate-y-1 relative">
@@ -171,14 +166,14 @@ export const Plants = () => {
                                             plant.status === 'SICK' ? 'bg-red-50/90 text-red-700 border-red-200' :
                                                 'bg-yellow-50/90 text-yellow-700 border-yellow-200'
                                             }`}>
-                                            {plant.status}
+                                            {t(plant.status.toLowerCase()) || plant.status}
                                         </span>
                                     </div>
 
                                     <div className="absolute bottom-3 left-3 z-20">
                                         <span className="bg-white/90 backdrop-blur text-xs font-bold px-2 py-1 rounded-lg text-slate-700 shadow-sm border border-slate-100 flex items-center gap-1.5">
                                             <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                                            {plant.phase}
+                                            {t(plant.phase?.toLowerCase() || 'germination') || plant.phase}
                                         </span>
                                     </div>
                                 </div>
@@ -189,11 +184,11 @@ export const Plants = () => {
                                     </div>
                                     <div className="flex items-center gap-2 mb-3">
                                         <span className="text-xs bg-slate-100/80 px-2 py-0.5 rounded-md text-slate-600 font-medium">
-                                            {plant.plant_type.toLowerCase()}
+                                            {t(plant.plant_type.toLowerCase()) || plant.plant_type}
                                         </span>
                                         <span className="text-xs text-slate-400">•</span>
                                         <span className="text-xs text-slate-500 font-medium truncate max-w-[120px]">
-                                            {plant.strain || 'Unknown Strain'}
+                                            {plant.strain || t('unknown_type')}
                                         </span>
                                     </div>
 
@@ -210,15 +205,15 @@ export const Plants = () => {
 
                                     <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-50">
                                         <div className="flex flex-col">
-                                            <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Age</span>
-                                            <span className="text-sm font-bold text-slate-700">{age} Days</span>
+                                            <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">{t('age')}</span>
+                                            <span className="text-sm font-bold text-slate-700">{age} {t('days')}</span>
                                         </div>
 
                                         <div className="flex items-center gap-2">
                                             <div className="text-right">
-                                                <span className="text-[10px] text-slate-400 block uppercase tracking-wider font-bold">Grow</span>
+                                                <span className="text-[10px] text-slate-400 block uppercase tracking-wider font-bold">{t('grows').slice(0, -1)}</span>
                                                 <span className="text-xs font-bold text-slate-700 truncate max-w-[80px] block">
-                                                    {plant.grow?.name || 'Unassigned'}
+                                                    {plant.grow?.name || t('unassigned')}
                                                 </span>
                                             </div>
                                         </div>
@@ -243,25 +238,25 @@ export const Plants = () => {
                                         <div className="flex items-center gap-3 mb-2">
                                             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{plant.start_date}</span>
                                             <span className="h-1 w-1 rounded-full bg-slate-300"></span>
-                                            <span className="text-xs font-bold text-green-600 uppercase tracking-wider">{plant.phase}</span>
+                                            <span className="text-xs font-bold text-green-600 uppercase tracking-wider">{t(plant.phase?.toLowerCase() || 'germination')}</span>
                                         </div>
                                         <h3 className="text-xl font-bold text-slate-900 mb-1">{plant.name}</h3>
                                         <p className="text-slate-600 mb-4">{plant.strain}</p>
 
                                         <div className="flex gap-4">
                                             <div className="flex flex-col">
-                                                <span className="text-xs text-slate-400">Type</span>
-                                                <span className="font-medium text-slate-700">{plant.plant_type}</span>
+                                                <span className="text-xs text-slate-400">{t('type')}</span>
+                                                <span className="font-medium text-slate-700">{t(plant.plant_type.toLowerCase())}</span>
                                             </div>
                                             <div className="flex flex-col">
-                                                <span className="text-xs text-slate-400">Status</span>
-                                                <span className="font-medium text-slate-700">{plant.status}</span>
+                                                <span className="text-xs text-slate-400">{t('status')}</span>
+                                                <span className="font-medium text-slate-700">{t(plant.status.toLowerCase())}</span>
                                             </div>
                                         </div>
                                     </div>
 
                                     <Link to={`/plants/${plant.id}`} className="px-5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:border-green-500 hover:text-green-600 transition-colors shadow-sm">
-                                        View Details
+                                        {t('view_details')}
                                     </Link>
                                 </div>
                             </div>
@@ -273,78 +268,94 @@ export const Plants = () => {
             {plants.length === 0 && !loading && (
                 <div className="text-center py-16 text-slate-500 bg-white rounded-xl border-2 border-dashed border-slate-200">
                     <Flower2 size={48} className="text-slate-300 mx-auto mb-4" />
-                    <p className="font-medium">No plants found.</p>
-                    <p className="text-sm text-slate-400 mt-1">Add plants to your grow to start tracking.</p>
+                    <p className="font-medium">{t('no_plants')}</p>
+                    <p className="text-sm text-slate-400 mt-1">{t('no_plants_desc')}</p>
                 </div>
             )}
 
             <Modal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                title="Add New Plant"
+                title={t('add_plant')}
             >
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg mb-4">
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">
+                            {t('quick_template') || 'Quick Fill Template'}
+                        </label>
+                        <select
+                            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:ring-2 focus:ring-green-500"
+                            onChange={applyTemplate}
+                            defaultValue=""
+                        >
+                            <option value="" disabled>{t('select_template') || 'Select a template...'}</option>
+                            {PLANT_TEMPLATES.map(tmp => (
+                                <option key={tmp.name} value={tmp.name}>{tmp.name}</option>
+                            ))}
+                        </select>
+                    </div>
+
                     <Select
-                        label="Assign to Grow"
+                        label={t('assign_grow')}
                         {...register('grow_id')}
                         error={errors.grow_id?.message}
                         options={[
-                            { value: '', label: 'Select a grow...' },
+                            { value: '', label: t('select_grow') },
                             ...grows.map(g => ({ value: g.id, label: g.name }))
                         ]}
                     />
 
                     <Input
-                        label="Plant Name"
-                        placeholder="e.g. Gorilla Glue #4"
+                        label={t('plant_name')}
+                        placeholder={t('plant_name_placeholder')}
                         {...register('name')}
                         error={errors.name?.message}
                     />
 
                     <Input
-                        label="Strain"
-                        placeholder="e.g. Indica Dominant"
+                        label={t('strain')}
+                        placeholder={t('strain_placeholder')}
                         {...register('strain')}
                     />
 
                     <div className="grid grid-cols-2 gap-4">
                         <Select
-                            label="Type"
+                            label={t('type')}
                             {...register('plant_type')}
                             options={[
-                                { value: 'PHOTOPERIOD', label: 'Photoperiod' },
-                                { value: 'AUTOFLOWER', label: 'Autoflower' },
-                                { value: 'UNKNOWN', label: 'Unknown' }
+                                { value: 'PHOTOPERIOD', label: t('photoperiod') },
+                                { value: 'AUTOFLOWER', label: t('autoflower') },
+                                { value: 'UNKNOWN', label: t('unknown_type') }
                             ]}
                         />
                         <Select
-                            label="Status"
+                            label={t('status')}
                             {...register('status')}
                             options={[
-                                { value: 'HEALTHY', label: 'Healthy' },
-                                { value: 'ISSUES', label: 'Issues' },
-                                { value: 'SICK', label: 'Sick' },
-                                { value: 'HARVESTED', label: 'Harvested' },
-                                { value: 'DEAD', label: 'Dead' }
+                                { value: 'HEALTHY', label: t('healthy') },
+                                { value: 'ISSUES', label: t('issues') },
+                                { value: 'SICK', label: t('sick') },
+                                { value: 'HARVESTED', label: t('harvested') },
+                                { value: 'DEAD', label: t('dead') }
                             ]}
                         />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <Select
-                            label="Phase"
+                            label={t('stage')}
                             {...register('phase')}
                             options={[
-                                { value: 'GERMINATION', label: 'Germination' },
-                                { value: 'VEGETATIVE', label: 'Vegetation' },
-                                { value: 'FLOWERING', label: 'Flowering' },
-                                { value: 'DRYING', label: 'Drying' },
-                                { value: 'CURED', label: 'Cured' }
+                                { value: 'GERMINATION', label: t('germination') },
+                                { value: 'VEGETATIVE', label: t('veg') },
+                                { value: 'FLOWERING', label: t('flower') },
+                                { value: 'DRYING', label: t('drying') },
+                                { value: 'CURED', label: t('cured') }
                             ]}
                         />
                         <Input
                             type="date"
-                            label="Start Date"
+                            label={t('started')}
                             {...register('start_date')}
                         />
                     </div>
@@ -355,18 +366,18 @@ export const Plants = () => {
                             onClick={() => setIsModalOpen(false)}
                             className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg transition-colors"
                         >
-                            Cancel
+                            {t('cancel')}
                         </button>
                         <button
                             type="submit"
                             disabled={loading}
                             className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
                         >
-                            {loading ? 'Adding...' : 'Add Plant'}
+                            {loading ? t('creating') : t('add_plant')}
                         </button>
                     </div>
                 </form>
             </Modal>
-        </div >
+        </div>
     );
 };

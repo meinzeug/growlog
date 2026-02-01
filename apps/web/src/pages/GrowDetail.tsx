@@ -7,10 +7,12 @@ import { Input, Select } from '../components/ui/Form';
 import { useForm } from 'react-hook-form';
 import { clsx } from 'clsx';
 import { format } from 'date-fns';
+import { useLanguage } from '../context/LanguageContext';
 
 export const GrowDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { t } = useLanguage();
     const [grow, setGrow] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [isEnvModalOpen, setIsEnvModalOpen] = useState(false);
@@ -36,13 +38,13 @@ export const GrowDetail = () => {
     }, [id]);
 
     const onDelete = async () => {
-        if (!confirm('Are you sure you want to delete this grow project? This cannot be undone.')) return;
+        if (!confirm(t('delete_confirm_grow'))) return;
         try {
             await api.delete(`/grows/${id}`);
             navigate('/grows');
         } catch (e) {
             console.error(e);
-            alert('Failed to delete grow');
+            alert(t('failed_delete_grow'));
         }
     };
 
@@ -55,14 +57,14 @@ export const GrowDetail = () => {
             reset();
         } catch (e) {
             console.error(e);
-            alert('Failed to add environment');
+            alert(t('failed_add_env'));
         } finally {
             setSubmitting(false);
         }
     };
 
     const deleteEnvironment = async (envId: string) => {
-        if (!confirm('Delete this environment?')) return;
+        if (!confirm(t('delete_env_confirm'))) return;
         try {
             await api.delete(`/environments/${envId}`);
             fetchGrow();
@@ -71,7 +73,7 @@ export const GrowDetail = () => {
         }
     };
 
-    if (loading) return <div className="p-8">Loading grow details...</div>;
+    if (loading) return <div className="p-8">{t('loading_grow_details')}</div>;
     if (!grow) return null;
 
     return (
@@ -89,11 +91,11 @@ export const GrowDetail = () => {
                                 "text-sm px-2 py-1 rounded-full uppercase tracking-wide font-bold",
                                 grow.location_type === 'INDOOR' ? "bg-purple-100 text-purple-700" : "bg-orange-100 text-orange-700"
                             )}>
-                                {grow.location_type}
+                                {t(grow.location_type.toLowerCase()) || grow.location_type}
                             </span>
                         </h1>
                         <p className="text-slate-500 text-sm mt-1">
-                            Started on {format(new Date(grow.created_at), 'MMMM d, yyyy')}
+                            {t('started_on')} {format(new Date(grow.created_at), 'MMMM d, yyyy')}
                         </p>
                     </div>
                 </div>
@@ -102,7 +104,7 @@ export const GrowDetail = () => {
                     className="flex items-center space-x-2 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg transition-colors border border-transparent hover:border-red-100"
                 >
                     <Trash2 size={18} />
-                    <span>Delete Project</span>
+                    <span>{t('delete_project')}</span>
                 </button>
             </div>
 
@@ -116,7 +118,7 @@ export const GrowDetail = () => {
                         <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                             <h3 className="font-bold text-slate-900 flex items-center gap-2">
                                 <Wind size={18} className="text-slate-400" />
-                                Environments
+                                {t('environments')}
                             </h3>
                             <button onClick={() => setIsEnvModalOpen(true)} className="p-1 hover:bg-green-100 text-green-600 rounded">
                                 <Plus size={18} />
@@ -134,7 +136,7 @@ export const GrowDetail = () => {
                                         <h4 className="font-bold text-slate-800 text-sm mb-2">{env.name}</h4>
                                         <div className="grid grid-cols-2 gap-2 text-xs text-slate-500">
                                             <div className="flex items-center gap-1">
-                                                <span className="font-medium bg-slate-100 px-1.5 py-0.5 rounded">{env.medium}</span>
+                                                <span className="font-medium bg-slate-100 px-1.5 py-0.5 rounded">{t(env.medium.toLowerCase()) || env.medium}</span>
                                             </div>
                                             <div className="flex items-center gap-1">
                                                 <span className="font-medium bg-yellow-50 text-yellow-700 px-1.5 py-0.5 rounded">{env.light_schedule}</span>
@@ -154,9 +156,9 @@ export const GrowDetail = () => {
                                 ))
                             ) : (
                                 <div className="p-6 text-center text-sm text-slate-400">
-                                    No environments defined.
+                                    {t('no_environments')}
                                     <br />
-                                    <button onClick={() => setIsEnvModalOpen(true)} className="text-green-600 hover:underline mt-1">Add Tent/Room</button>
+                                    <button onClick={() => setIsEnvModalOpen(true)} className="text-green-600 hover:underline mt-1">{t('add_tent_room')}</button>
                                 </div>
                             )}
                         </div>
@@ -164,9 +166,9 @@ export const GrowDetail = () => {
 
                     {/* Notes */}
                     <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
-                        <h3 className="font-bold text-slate-900 mb-3 text-sm uppercase tracking-wider text-slate-400">Project Notes</h3>
+                        <h3 className="font-bold text-slate-900 mb-3 text-sm uppercase tracking-wider text-slate-400">{t('project_notes')}</h3>
                         <p className="text-slate-600 text-sm whitespace-pre-wrap">
-                            {grow.notes || "No notes provided."}
+                            {grow.notes || t('no_notes')}
                         </p>
                     </div>
                 </div>
@@ -176,13 +178,13 @@ export const GrowDetail = () => {
                     <div className="flex justify-between items-center">
                         <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
                             <Sprout className="text-green-500" />
-                            Plants in this Grow
+                            {t('plants_in_grow')}
                         </h2>
                         <Link
                             to="/plants"
                             className="text-sm font-medium text-green-600 hover:text-green-700 bg-green-50 px-3 py-1.5 rounded-lg transition-colors hover:bg-green-100"
                         >
-                            + Add Plant
+                            + {t('add_plant')}
                         </Link>
                     </div>
 
@@ -190,7 +192,7 @@ export const GrowDetail = () => {
                         {grow.plants?.length > 0 ? (
                             grow.plants.map((plant: any) => (
                                 <Link
-                                    to={`/plants`} // TODO: Link to PlantDetail when ready
+                                    to={`/plants/${plant.id}`} // Fixed Link
                                     key={plant.id}
                                     className="bg-white p-4 rounded-xl border border-slate-200 hover:border-green-300 hover:shadow-md transition-all group"
                                 >
@@ -200,17 +202,17 @@ export const GrowDetail = () => {
                                             "text-xs font-bold px-2 py-0.5 rounded-full border",
                                             plant.status === 'HEALTHY' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-yellow-50 text-yellow-600 border-yellow-100'
                                         )}>
-                                            {plant.status}
+                                            {t(plant.status.toLowerCase()) || plant.status}
                                         </span>
                                     </div>
                                     <p className="text-sm text-slate-500 mb-4">{plant.strain || 'Unknown Strain'}</p>
 
                                     <div className="flex gap-2 text-xs">
                                         <span className="px-2 py-1 bg-slate-50 rounded text-slate-600 border border-slate-100">
-                                            {plant.phase}
+                                            {t(plant.phase.toLowerCase()) || plant.phase}
                                         </span>
                                         <span className="px-2 py-1 bg-slate-50 rounded text-slate-600 border border-slate-100">
-                                            {plant.plant_type}
+                                            {t(plant.plant_type.toLowerCase()) || plant.plant_type}
                                         </span>
                                     </div>
                                 </Link>
@@ -218,7 +220,7 @@ export const GrowDetail = () => {
                         ) : (
                             <div className="col-span-full py-12 text-center bg-slate-50 rounded-xl border-2 border-dashed border-slate-200 text-slate-400">
                                 <Sprout size={32} className="mx-auto mb-2 opacity-50" />
-                                <p>No plants yet.</p>
+                                <p>{t('no_plants_yet')}</p>
                             </div>
                         )}
                     </div>
@@ -229,50 +231,50 @@ export const GrowDetail = () => {
             <Modal
                 isOpen={isEnvModalOpen}
                 onClose={() => setIsEnvModalOpen(false)}
-                title="Add Environment"
+                title={t('add_environment')}
             >
                 <form onSubmit={handleSubmit(onCreateEnvironment)} className="space-y-4">
                     <Input
-                        label="Name"
-                        placeholder="e.g. Tent 1 (80x80)"
+                        label={t('name_label')}
+                        placeholder={t('tent_example')}
                         {...register('name', { required: true })}
                     />
 
                     <div className="grid grid-cols-2 gap-4">
                         <Select
-                            label="Medium"
+                            label={t('medium')}
                             {...register('medium')}
                             options={[
-                                { value: 'SOIL', label: 'Soil' },
-                                { value: 'COCO', label: 'Coco' },
-                                { value: 'HYDRO', label: 'Hydro' },
-                                { value: 'OTHER', label: 'Other' }
+                                { value: 'SOIL', label: t('soil') },
+                                { value: 'COCO', label: t('coco') },
+                                { value: 'HYDRO', label: t('hydro') },
+                                { value: 'OTHER', label: t('other') }
                             ]}
                         />
                         <Input
-                            label="Light Schedule"
-                            placeholder="e.g. 18/6"
+                            label={t('light_schedule')}
+                            placeholder={t('schedule_example')}
                             {...register('light_schedule')}
                         />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <Input
-                            label="Temp Target (°C)"
+                            label={t('temp_target')}
                             type="number"
                             {...register('temperature_target')}
                         />
                         <Input
-                            label="Humidity Target (%)"
+                            label={t('humidity_target')}
                             type="number"
                             {...register('humidity_target')}
                         />
                     </div>
 
                     <div className="pt-2 flex justify-end space-x-3">
-                        <button type="button" onClick={() => setIsEnvModalOpen(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+                        <button type="button" onClick={() => setIsEnvModalOpen(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg">{t('cancel')}</button>
                         <button type="submit" disabled={submitting} className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg">
-                            {submitting ? 'Adding...' : 'Add Environment'}
+                            {submitting ? t('adding') : t('add_environment')}
                         </button>
                     </div>
                 </form>

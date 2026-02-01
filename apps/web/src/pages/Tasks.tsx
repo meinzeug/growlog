@@ -6,8 +6,10 @@ import { clsx } from 'clsx';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Form';
 import { useForm } from 'react-hook-form';
+import { useLanguage } from '../context/LanguageContext';
 
 export const Tasks = () => {
+    const { t } = useLanguage();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [tasks, setTasks] = useState<any[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -87,14 +89,14 @@ export const Tasks = () => {
         let icon = Moon;
         let recommendation = '';
 
-        if (age < 1.8) { phase = 'New Moon'; recommendation = 'Good for planting above-ground crops.'; }
-        else if (age < 7.4) { phase = 'Waxing Crescent'; recommendation = 'Focus on leaf growth.'; }
-        else if (age < 9.2) { phase = 'First Quarter'; recommendation = 'Good time for fertilization.'; }
-        else if (age < 14.8) { phase = 'Waxing Gibbous'; recommendation = 'Approaching full energy.'; }
-        else if (age < 16.6) { phase = 'Full Moon'; recommendation = 'Highest sap flow. Avoid pruning.'; }
-        else if (age < 22.1) { phase = 'Waning Gibbous'; recommendation = 'Focus on root development.'; }
-        else if (age < 24.0) { phase = 'Last Quarter'; recommendation = 'Weeding and soil prep.'; }
-        else { phase = 'Waning Crescent'; recommendation = 'Rest period for plants.'; }
+        if (age < 1.8) { phase = t('moon_new'); recommendation = t('rec_new'); }
+        else if (age < 7.4) { phase = t('moon_waxing_crescent'); recommendation = t('rec_waxing_crescent'); }
+        else if (age < 9.2) { phase = t('moon_first_quarter'); recommendation = t('rec_first_quarter'); }
+        else if (age < 14.8) { phase = t('moon_waxing_gibbous'); recommendation = t('rec_waxing_gibbous'); }
+        else if (age < 16.6) { phase = t('moon_full'); recommendation = t('rec_full'); }
+        else if (age < 22.1) { phase = t('moon_waning_gibbous'); recommendation = t('rec_waning_gibbous'); }
+        else if (age < 24.0) { phase = t('moon_last_quarter'); recommendation = t('rec_last_quarter'); }
+        else { phase = t('moon_waning_crescent'); recommendation = t('rec_waning_crescent'); }
 
         return { age, phase, recommendation, icon };
     };
@@ -104,19 +106,19 @@ export const Tasks = () => {
     return (
         <div className="space-y-6 h-full">
             <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-bold text-slate-900">Calendar</h1>
+                <h1 className="text-3xl font-bold text-slate-900">{t('tasks_title')}</h1>
                 <div className="flex bg-slate-100 p-1 rounded-lg">
                     <button
                         className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'calendar' ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
                         onClick={() => setViewMode('calendar')}
                     >
-                        Calendar
+                        {t('calendar_view')}
                     </button>
                     <button
                         className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'kanban' ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
                         onClick={() => setViewMode('kanban')}
                     >
-                        Board
+                        {t('board_view')}
                     </button>
                 </div>
                 <button
@@ -124,7 +126,7 @@ export const Tasks = () => {
                     className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
                 >
                     <Plus size={20} />
-                    <span>New Task</span>
+                    <span>{t('new_task')}</span>
                 </button>
             </div>
 
@@ -132,7 +134,7 @@ export const Tasks = () => {
             <div className="flex gap-2 mb-6 overflow-x-auto pb-2 hide-scrollbar">
                 {['All', 'Feeding', 'Environment', 'Training', 'Maintenance', 'IPM'].map(filter => (
                     <button key={filter} className="px-3 py-1 bg-white border border-slate-200 rounded-full text-xs font-medium text-slate-600 hover:border-green-500 hover:text-green-600 whitespace-nowrap">
-                        {filter}
+                        {filter === 'All' ? t('all') || 'All' : filter}
                     </button>
                 ))}
             </div>
@@ -142,61 +144,58 @@ export const Tasks = () => {
                     {/* Todo Column */}
                     <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 h-full flex flex-col">
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-bold text-slate-700">To Do</h3>
-                            <span className="bg-slate-200 text-slate-600 text-xs px-2 py-0.5 rounded-full font-bold">3</span>
+                            <h3 className="font-bold text-slate-700">{t('todo')}</h3>
+                            <span className="bg-slate-200 text-slate-600 text-xs px-2 py-0.5 rounded-full font-bold">{tasks.filter(t => t.status === 'OPEN').length}</span>
                         </div>
                         <div className="space-y-3 flex-1 overflow-y-auto">
-                            <div className="bg-white p-3 rounded-xl shadow-sm border border-slate-100 cursor-move hover:shadow-md transition-all">
-                                <div className="flex justify-between items-start mb-2">
-                                    <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">Feeding</span>
-                                    <span className="text-[10px] text-slate-400">Today</span>
+                            {tasks.filter(t => t.status === 'OPEN').map(task => (
+                                <div key={task.id} className="bg-white p-3 rounded-xl shadow-sm border border-slate-100 cursor-move hover:shadow-md transition-all">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">{task.type || 'General'}</span>
+                                        <span className="text-[10px] text-slate-400">{format(new Date(task.due_at), 'MMM d')}</span>
+                                    </div>
+                                    <h4 className="font-bold text-slate-900 text-sm mb-1">{task.title}</h4>
+                                    <p className="text-xs text-slate-500">{task.description}</p>
                                 </div>
-                                <h4 className="font-bold text-slate-900 text-sm mb-1">Nutrient Mix A</h4>
-                                <p className="text-xs text-slate-500">2.5L Water + CalMag</p>
-                            </div>
-                            <div className="bg-white p-3 rounded-xl shadow-sm border border-slate-100 cursor-move hover:shadow-md transition-all">
-                                <div className="flex justify-between items-start mb-2">
-                                    <span className="text-[10px] font-bold bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded">Environment</span>
-                                    <span className="text-[10px] text-red-400 font-bold">Overdue</span>
-                                </div>
-                                <h4 className="font-bold text-slate-900 text-sm mb-1">Check pH Pen</h4>
-                                <p className="text-xs text-slate-500">Calibration needed</p>
-                            </div>
+                            ))}
                         </div>
                     </div>
 
                     {/* In Progress */}
                     <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 h-full flex flex-col">
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-bold text-slate-700">In Progress</h3>
-                            <span className="bg-slate-200 text-slate-600 text-xs px-2 py-0.5 rounded-full font-bold">1</span>
+                            <h3 className="font-bold text-slate-700">{t('in_progress')}</h3>
+                            <span className="bg-slate-200 text-slate-600 text-xs px-2 py-0.5 rounded-full font-bold">{tasks.filter(t => t.status === 'IN_PROGRESS').length}</span>
                         </div>
                         <div className="space-y-3 flex-1 overflow-y-auto">
-                            <div className="bg-white p-3 rounded-xl shadow-sm border border-slate-100 cursor-move hover:shadow-md transition-all">
-                                <div className="flex justify-between items-start mb-2">
-                                    <span className="text-[10px] font-bold bg-green-50 text-green-600 px-1.5 py-0.5 rounded">Training</span>
-                                    <span className="text-[10px] text-slate-400">Now</span>
+                            {tasks.filter(t => t.status === 'IN_PROGRESS').map(task => (
+                                <div key={task.id} className="bg-white p-3 rounded-xl shadow-sm border border-slate-100 cursor-move hover:shadow-md transition-all">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <span className="text-[10px] font-bold bg-yellow-50 text-yellow-600 px-1.5 py-0.5 rounded">{task.type || 'General'}</span>
+                                        <span className="text-[10px] text-slate-400">{format(new Date(task.due_at), 'MMM d')}</span>
+                                    </div>
+                                    <h4 className="font-bold text-slate-900 text-sm mb-1">{task.title}</h4>
                                 </div>
-                                <h4 className="font-bold text-slate-900 text-sm mb-1">LST - Plant #4</h4>
-                                <p className="text-xs text-slate-500">Tie down main stem</p>
-                            </div>
+                            ))}
                         </div>
                     </div>
 
                     {/* Done */}
                     <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 h-full flex flex-col">
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-bold text-slate-700">Done</h3>
-                            <span className="bg-green-100 text-green-600 text-xs px-2 py-0.5 rounded-full font-bold">12</span>
+                            <h3 className="font-bold text-slate-700">{t('done')}</h3>
+                            <span className="bg-green-100 text-green-600 text-xs px-2 py-0.5 rounded-full font-bold">{tasks.filter(t => t.status === 'DONE').length}</span>
                         </div>
                         <div className="space-y-3 flex-1 overflow-y-auto opacity-60">
-                            <div className="bg-white p-3 rounded-xl shadow-sm border border-slate-100 cursor-default">
-                                <div className="flex justify-between items-start mb-2">
-                                    <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">Cleaning</span>
-                                    <span className="text-[10px] text-slate-400">Yesterday</span>
+                            {tasks.filter(t => t.status === 'DONE').map(task => (
+                                <div key={task.id} className="bg-white p-3 rounded-xl shadow-sm border border-slate-100 cursor-default">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">{task.type || 'General'}</span>
+                                        <span className="text-[10px] text-slate-400">{format(new Date(task.due_at), 'MMM d')}</span>
+                                    </div>
+                                    <h4 className="font-bold text-slate-900 text-sm mb-1 line-through">{task.title}</h4>
                                 </div>
-                                <h4 className="font-bold text-slate-900 text-sm mb-1 line-through">Clean Res</h4>
-                            </div>
+                            ))}
                         </div>
                     </div>
                 </div>
@@ -269,8 +268,6 @@ export const Tasks = () => {
                                                 </div>
                                             ))}
                                         </div>
-
-                                        {/* Add task shortcut on hover? */}
                                     </div>
                                 );
                             })}
@@ -285,7 +282,7 @@ export const Tasks = () => {
                             <div className="relative z-10">
                                 <div className="flex items-start justify-between mb-6">
                                     <div>
-                                        <h3 className="text-lg font-bold text-white/90">Moon Phase</h3>
+                                        <h3 className="text-lg font-bold text-white/90">{t('moon_phase')}</h3>
                                         <p className="text-sm text-green-400 font-medium">{moonData.phase}</p>
                                     </div>
                                     <Moon size={32} className="text-green-300" />
@@ -293,7 +290,7 @@ export const Tasks = () => {
 
                                 <div className="space-y-4">
                                     <div>
-                                        <span className="text-xs text-slate-400 uppercase tracking-wider">Planter's Tip</span>
+                                        <span className="text-xs text-slate-400 uppercase tracking-wider">{t('planters_tip')}</span>
                                         <p className="font-medium text-white/80 leading-snug mt-1">
                                             {moonData.recommendation}
                                         </p>
@@ -302,11 +299,11 @@ export const Tasks = () => {
                                     <div className="pt-4 border-t border-white/10 flex items-center gap-4 text-xs text-white/60">
                                         <div className="flex items-center gap-1.5">
                                             <Sun size={14} />
-                                            <span>Sunrise 06:42</span>
+                                            <span>{t('sunrise')} 06:42</span>
                                         </div>
                                         <div className="flex items-center gap-1.5">
                                             <Moon size={14} />
-                                            <span>Sunset 20:15</span>
+                                            <span>{t('sunset')} 20:15</span>
                                         </div>
                                     </div>
                                 </div>
@@ -319,7 +316,7 @@ export const Tasks = () => {
 
                         {/* Upcoming Tasks Widget */}
                         <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-                            <h3 className="text-lg font-bold text-slate-900 mb-4">Upcoming</h3>
+                            <h3 className="text-lg font-bold text-slate-900 mb-4">{t('upcoming')}</h3>
 
                             {tasks.filter(t => t.status !== 'DONE').length > 0 ? (
                                 <div className="space-y-3">
@@ -340,12 +337,12 @@ export const Tasks = () => {
                             ) : (
                                 <div className="text-center py-8 text-slate-400 text-sm">
                                     <CheckCircle2 size={32} className="mx-auto mb-2 opacity-50" />
-                                    <p>All caught up!</p>
+                                    <p>{t('all_caught_up')}</p>
                                 </div>
                             )}
 
                             <button onClick={() => setIsModalOpen(true)} className="w-full mt-4 py-3 text-sm font-bold text-green-700 bg-green-50 hover:bg-green-100 rounded-xl transition-colors">
-                                Add New Task
+                                {t('add_task')}
                             </button>
                         </div>
                     </div>
@@ -356,50 +353,48 @@ export const Tasks = () => {
             <Modal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                title="Add New Task"
+                title={t('new_task')}
             >
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                     <Input
-                        label="Task Title"
+                        label={t('task_title')}
                         placeholder="e.g. Water Plants"
                         {...register('title', { required: true })}
                     />
 
                     <Input
                         type="datetime-local"
-                        label="Due Date"
+                        label={t('due_date')}
                         {...register('due_at', { required: true })}
                         defaultValue={new Date().toISOString().slice(0, 16)}
                     />
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Frequency</label>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">{t('frequency')}</label>
                             <select
                                 {...register('repeat_rule')}
                                 className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500"
                             >
-                                <option value="">One-time</option>
-                                <option value="DAILY">Daily</option>
-                                <option value="EVERY_3_DAYS">Every 3 Days</option>
-                                <option value="WEEKLY">Weekly</option>
-                                <option value="MONTHLY">Monthly</option>
+                                <option value="">{t('one_time')}</option>
+                                <option value="DAILY">{t('daily')}</option>
+                                <option value="EVERY_3_DAYS">{t('every_3_days')}</option>
+                                <option value="WEEKLY">{t('weekly')}</option>
+                                <option value="MONTHLY">{t('monthly')}</option>
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Priority</label>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">{t('priority')}</label>
                             <select
                                 {...register('priority')}
                                 className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500"
                             >
-                                <option value="MEDIUM">Normal</option>
-                                <option value="HIGH">High</option>
-                                <option value="LOW">Low</option>
+                                <option value="MEDIUM">{t('priority_normal')}</option>
+                                <option value="HIGH">{t('priority_high')}</option>
+                                <option value="LOW">{t('priority_low')}</option>
                             </select>
                         </div>
                     </div>
-
-                    {/* Could add Type selector here later */}
 
                     <div className="pt-2 flex justify-end space-x-3">
                         <button
@@ -407,14 +402,14 @@ export const Tasks = () => {
                             onClick={() => setIsModalOpen(false)}
                             className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg"
                         >
-                            Cancel
+                            {t('cancel')}
                         </button>
                         <button
                             type="submit"
                             disabled={loading}
                             className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg"
                         >
-                            {loading ? 'Adding...' : 'Add Task'}
+                            {loading ? t('creating') : t('add_task')}
                         </button>
                     </div>
                 </form>

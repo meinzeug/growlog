@@ -11,8 +11,23 @@ const app: Express = express();
 const PORT = process.env.PORT || 15100;
 
 // Middleware
+// Middleware
+const defaultOrigins = [
+    'http://localhost:15000',
+    'http://localhost:15002',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:15002',
+    'http://growlog.mooo.com:15002',
+    'http://growlog.mooo.com'
+];
+
+const allowedOrigins = process.env.CORS_ORIGIN
+    ? [...process.env.CORS_ORIGIN.split(',').map(o => o.trim()), ...defaultOrigins]
+    : defaultOrigins;
+
 app.use(cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:15000',
+    origin: allowedOrigins,
     credentials: true
 }));
 app.use(json());

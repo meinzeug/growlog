@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../lib/api';
+import { useLanguage } from '../context/LanguageContext';
 
 const loginSchema = z.object({
     email: z.string().email(),
@@ -15,6 +16,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 export const Login = () => {
     const { login } = useAuth();
+    const { t } = useLanguage();
     const navigate = useNavigate();
     const [error, setError] = useState('');
 
@@ -28,14 +30,14 @@ export const Login = () => {
             login(res.data.token, res.data.user);
             navigate('/');
         } catch (e: any) {
-            setError(e.response?.data?.error || 'Login failed');
+            setError(e.response?.data?.error || t('login_failed'));
         }
     };
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-slate-900">
             <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
-                <h2 className="text-3xl font-bold text-center text-slate-900 mb-8">Welcome Back</h2>
+                <h2 className="text-3xl font-bold text-center text-slate-900 mb-8">{t('welcome_back')}</h2>
 
                 {error && (
                     <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">
@@ -45,18 +47,18 @@ export const Login = () => {
 
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('email_label')}</label>
                         <input
                             {...register('email')}
                             className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
                             type="email"
-                            placeholder="you@example.com"
+                            placeholder={t('email_placeholder')}
                         />
                         {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('password_label')}</label>
                         <input
                             {...register('password')}
                             className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
@@ -70,12 +72,12 @@ export const Login = () => {
                         disabled={isSubmitting}
                         className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition-all transform hover:scale-[1.02] active:scale-[0.98]"
                     >
-                        {isSubmitting ? 'Signing in...' : 'Sign In'}
+                        {isSubmitting ? t('signing_in') : t('sign_in')}
                     </button>
                 </form>
 
                 <p className="mt-4 text-center text-sm text-slate-500">
-                    Don't have an account? <Link to="/register" className="text-green-600 hover:underline">Sign up</Link>
+                    {t('no_account')} <Link to="/register" className="text-green-600 hover:underline">{t('sign_up')}</Link>
                 </p>
             </div>
         </div>

@@ -2,10 +2,14 @@ import { useEffect, useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import api from '../lib/api';
 import { Loader2 } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
-const COLORS = ['#22c55e', '#ef4444', '#f59e0b', '#3b82f6'];
+import { CHART_COLORS } from '../lib/theme';
+
+const COLORS = CHART_COLORS.palette;
 
 export const Reports = () => {
+    const { t } = useLanguage();
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
@@ -37,12 +41,13 @@ export const Reports = () => {
 
     // Status Distribution
     const statusCounts = plants.reduce((acc: any, p: any) => {
-        acc[p.status] = (acc[p.status] || 0) + 1;
+        const status = p.status; // Keep original key for lookup if needed, but display translated
+        acc[status] = (acc[status] || 0) + 1;
         return acc;
     }, {});
 
     const statusData = Object.keys(statusCounts).map(key => ({
-        name: key,
+        name: t(key.toLowerCase()) || key,
         value: statusCounts[key]
     }));
 
@@ -53,21 +58,21 @@ export const Reports = () => {
     }, {});
 
     const phaseData = Object.keys(phaseCounts).map(key => ({
-        name: key,
+        name: t(key.toLowerCase()) || key,
         value: phaseCounts[key]
     }));
 
     return (
         <div className="space-y-8">
             <div>
-                <h1 className="text-3xl font-bold text-slate-900">Reports</h1>
-                <p className="text-slate-500">Analytics and insights for your garden.</p>
+                <h1 className="text-3xl font-bold text-slate-900">{t('reports')}</h1>
+                <p className="text-slate-500">{t('reports_subtitle')}</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Plant Status Chart */}
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-                    <h3 className="text-lg font-bold text-slate-900 mb-4">Plant Health Status</h3>
+                    <h3 className="text-lg font-bold text-slate-900 mb-4">{t('plant_health_status')}</h3>
                     <div className="h-[300px]">
                         {statusData.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
@@ -91,14 +96,14 @@ export const Reports = () => {
                                 </PieChart>
                             </ResponsiveContainer>
                         ) : (
-                            <div className="h-full flex items-center justify-center text-slate-400">No data available</div>
+                            <div className="h-full flex items-center justify-center text-slate-400">{t('no_data')}</div>
                         )}
                     </div>
                 </div>
 
                 {/* Plant Phases Chart */}
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-                    <h3 className="text-lg font-bold text-slate-900 mb-4">Plants by Phase</h3>
+                    <h3 className="text-lg font-bold text-slate-900 mb-4">{t('plants_by_phase')}</h3>
                     <div className="h-[300px]">
                         {phaseData.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
@@ -110,20 +115,20 @@ export const Reports = () => {
                                 </BarChart>
                             </ResponsiveContainer>
                         ) : (
-                            <div className="h-full flex items-center justify-center text-slate-400">No data available</div>
+                            <div className="h-full flex items-center justify-center text-slate-400">{t('no_data')}</div>
                         )}
                     </div>
                 </div>
 
                 {/* Task Completion Chart */}
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 md:col-span-2">
-                    <h3 className="text-lg font-bold text-slate-900 mb-4">Task Completion</h3>
+                    <h3 className="text-lg font-bold text-slate-900 mb-4">{t('task_completion')}</h3>
                     <div className="h-[300px]">
                         {data?.tasks?.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={[
-                                    { name: 'Completed', value: data.tasks.filter((t: any) => t.status === 'DONE').length },
-                                    { name: 'Pending', value: data.tasks.filter((t: any) => t.status !== 'DONE').length },
+                                    { name: t('completed'), value: data.tasks.filter((t: any) => t.status === 'DONE').length },
+                                    { name: t('pending'), value: data.tasks.filter((t: any) => t.status !== 'DONE').length },
                                 ]} layout="vertical">
                                     <XAxis type="number" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
                                     <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} width={100} />
@@ -132,7 +137,7 @@ export const Reports = () => {
                                 </BarChart>
                             </ResponsiveContainer>
                         ) : (
-                            <div className="h-full flex items-center justify-center text-slate-400">No tasks data available</div>
+                            <div className="h-full flex items-center justify-center text-slate-400">{t('no_data')}</div>
                         )}
                     </div>
                 </div>

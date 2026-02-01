@@ -12,9 +12,15 @@ export default defineConfig({
   },
   server: {
     port: 15000,
-    host: true
+    host: true,
+    allowedHosts: ['growlog.mooo.com', 'localhost', '127.0.0.1']
   },
   optimizeDeps: {
     include: ['@growlog/shared']
+  },
+  build: {
+    commonjsOptions: {
+      include: [/@growlog\/shared/, /node_modules/]
+    }
   }
 })

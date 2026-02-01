@@ -8,6 +8,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import clsx from 'clsx';
+import { useLanguage } from '../context/LanguageContext';
 
 // Shared types (ideally import from @growlog/shared)
 
@@ -20,6 +21,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export const Grows = () => {
+    const { t } = useLanguage();
     const [grows, setGrows] = useState<any[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -27,7 +29,7 @@ export const Grows = () => {
     const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
         resolver: zodResolver(schema),
         defaultValues: {
-            location_type: 'INDOOR'
+            location_type: 'INDOOR' // Most home growers operate indoors
         }
     });
 
@@ -60,7 +62,7 @@ export const Grows = () => {
     };
 
     const deleteGrow = async (id: string) => {
-        if (!confirm('Are you sure? This will delete all plants in this grow.')) return;
+        if (!confirm(t('delete_confirm'))) return;
         try {
             await api.delete(`/grows/${id}`);
             fetchGrows();
@@ -74,15 +76,15 @@ export const Grows = () => {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900">My Grows</h1>
-                    <p className="text-slate-500">Manage your growing spaces and projects.</p>
+                    <h1 className="text-3xl font-bold text-slate-900">{t('my_grows')}</h1>
+                    <p className="text-slate-500">{t('grows_subtitle')}</p>
                 </div>
                 <button
                     onClick={() => setIsModalOpen(true)}
                     className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm"
                 >
                     <Plus size={20} />
-                    <span>New Grow</span>
+                    <span>{t('new_grow')}</span>
                 </button>
             </div>
 
@@ -90,29 +92,29 @@ export const Grows = () => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between h-28">
                     <div className="flex justify-between items-start">
-                        <span className="text-slate-500 font-medium text-xs uppercase tracking-wider">Total Plants</span>
+                        <span className="text-slate-500 font-medium text-xs uppercase tracking-wider">{t('total_plants')}</span>
                         <Sprout size={18} className="text-green-500" />
                     </div>
                     <div className="flex items-baseline gap-2">
                         <span className="text-3xl font-bold text-slate-900">{grows.reduce((acc, g) => acc + (g.plants?.length || 0), 0)}</span>
-                        <span className="text-xs text-green-600 font-bold bg-green-50 px-1.5 py-0.5 rounded-md">+4 this week</span>
+                        <span className="text-xs text-green-600 font-bold bg-green-50 px-1.5 py-0.5 rounded-md">+4 {t('week')}</span>
                     </div>
                 </div>
 
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between h-28">
                     <div className="flex justify-between items-start">
-                        <span className="text-slate-500 font-medium text-xs uppercase tracking-wider">Avg Temp</span>
+                        <span className="text-slate-500 font-medium text-xs uppercase tracking-wider">{t('temperature')} (Avg)</span>
                         <Thermometer size={18} className="text-orange-500" />
                     </div>
                     <div className="flex items-baseline gap-2">
                         <span className="text-3xl font-bold text-slate-900">24°C</span>
-                        <span className="text-xs text-slate-400">Daytime</span>
+                        <span className="text-xs text-slate-400">{t('daytime')}</span>
                     </div>
                 </div>
 
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between h-28">
                     <div className="flex justify-between items-start">
-                        <span className="text-slate-500 font-medium text-xs uppercase tracking-wider">Avg Humidity</span>
+                        <span className="text-slate-500 font-medium text-xs uppercase tracking-wider">{t('humidity')} (Avg)</span>
                         <Droplets size={18} className="text-blue-500" />
                     </div>
                     <div className="flex items-baseline gap-2">
@@ -123,12 +125,12 @@ export const Grows = () => {
 
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between h-28">
                     <div className="flex justify-between items-start">
-                        <span className="text-slate-500 font-medium text-xs uppercase tracking-wider">Harvest Est.</span>
+                        <span className="text-slate-500 font-medium text-xs uppercase tracking-wider">{t('est_yield')}</span>
                         <Calendar size={18} className="text-purple-500" />
                     </div>
                     <div className="flex items-baseline gap-2">
                         <span className="text-3xl font-bold text-slate-900">12 Days</span>
-                        <span className="text-xs text-slate-400">Next Crop</span>
+                        <span className="text-xs text-slate-400">{t('next_crop')}</span>
                     </div>
                 </div>
             </div>
@@ -179,9 +181,9 @@ export const Grows = () => {
                                             <div>
                                                 <h3 className="text-xl font-bold text-slate-900">{grow.name}</h3>
                                                 <div className="flex items-center gap-2 text-sm text-slate-500">
-                                                    <span>{grow.location_type}</span>
+                                                    <span>{grow.location_type === 'INDOOR' ? t('indoor') : t('outdoor')}</span>
                                                     <span>•</span>
-                                                    <span>Started {new Date(grow.created_at).toLocaleDateString()}</span>
+                                                    <span>{t('started')} {new Date(grow.created_at).toLocaleDateString()}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -192,7 +194,7 @@ export const Grows = () => {
                                                 deleteGrow(grow.id);
                                             }}
                                             className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
-                                            title="Delete Grow"
+                                            title={t('delete')}
                                         >
                                             <Trash2 size={18} />
                                         </button>
@@ -200,17 +202,17 @@ export const Grows = () => {
 
                                     <div className="grid grid-cols-3 gap-4 mb-6">
                                         <div className="bg-slate-50 p-3 rounded-lg">
-                                            <span className="block text-xs text-slate-500 uppercase font-bold mb-1">Plants</span>
+                                            <span className="block text-xs text-slate-500 uppercase font-bold mb-1">{t('plants')}</span>
                                             <span className="text-lg font-bold text-slate-800">{plantCount}</span>
                                         </div>
                                         <div className="bg-slate-50 p-3 rounded-lg">
-                                            <span className="block text-xs text-slate-500 uppercase font-bold mb-1">Est. Yield</span>
+                                            <span className="block text-xs text-slate-500 uppercase font-bold mb-1">{t('est_yield')}</span>
                                             <span className="text-lg font-bold text-slate-800">{estimatedYield > 0 ? `~${estimatedYield}g` : '-'}</span>
                                         </div>
                                         <div className="bg-slate-50 p-3 rounded-lg">
-                                            <span className="block text-xs text-slate-500 uppercase font-bold mb-1">Stage</span>
+                                            <span className="block text-xs text-slate-500 uppercase font-bold mb-1">{t('stage')}</span>
                                             <span className="text-lg font-bold text-slate-800">
-                                                {progress < 20 ? 'Early' : progress < 60 ? 'Veg' : 'Flower'}
+                                                {progress < 20 ? t('germination') : progress < 60 ? t('veg') : t('flower')}
                                             </span>
                                         </div>
                                     </div>
@@ -218,10 +220,10 @@ export const Grows = () => {
                                     {/* Timeline Progress */}
                                     <div className="mb-2">
                                         <div className="flex justify-between text-xs font-bold text-slate-500 mb-2">
-                                            <span className={progress < 25 ? 'text-green-600' : ''}>Germination</span>
-                                            <span className={progress >= 25 && progress < 50 ? 'text-green-600' : ''}>Veg</span>
-                                            <span className={progress >= 50 && progress < 90 ? 'text-green-600' : ''}>Flower</span>
-                                            <span className={progress >= 90 ? 'text-green-600' : ''}>Harvest</span>
+                                            <span className={progress < 25 ? 'text-green-600' : ''}>{t('germination')}</span>
+                                            <span className={progress >= 25 && progress < 50 ? 'text-green-600' : ''}>{t('veg')}</span>
+                                            <span className={progress >= 50 && progress < 90 ? 'text-green-600' : ''}>{t('flower')}</span>
+                                            <span className={progress >= 90 ? 'text-green-600' : ''}>{t('harvest')}</span>
                                         </div>
                                         <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden relative">
                                             <div className="absolute top-0 bottom-0 left-0 bg-green-500 rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
@@ -233,7 +235,7 @@ export const Grows = () => {
                                 <div className="lg:w-80 border-t lg:border-t-0 lg:border-l border-slate-100 pt-6 lg:pt-0 lg:pl-8 flex flex-col">
                                     <h4 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
                                         <Activity size={16} className="text-slate-400" />
-                                        Environment (Target)
+                                        {t('env_target')}
                                     </h4>
 
                                     {primaryEnv ? (
@@ -292,10 +294,10 @@ export const Grows = () => {
                                     <div className="mt-auto space-y-2">
                                         <button className="w-full py-2 bg-blue-50 text-blue-600 font-bold text-sm rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center gap-2">
                                             <Droplets size={16} />
-                                            <span>Log Watering</span>
+                                            <span>{t('log_watering')}</span>
                                         </button>
                                         <Link to={`/grows/${grow.id}`} className="w-full py-2 border border-slate-200 text-slate-600 font-bold text-sm rounded-lg hover:border-green-500 hover:text-green-600 transition-colors flex items-center justify-center gap-2">
-                                            View Details
+                                            {t('view_details')}
                                         </Link>
                                     </div>
                                 </div>
@@ -307,12 +309,12 @@ export const Grows = () => {
                 {grows.length === 0 && (
                     <div className="col-span-full flex flex-col items-center justify-center py-16 text-slate-500 bg-white rounded-xl border-2 border-dashed border-slate-200">
                         <Sprout size={48} className="text-slate-300 mb-4" />
-                        <p className="font-medium">No grows found yet.</p>
+                        <p className="font-medium">{t('no_grows')}</p>
                         <button
                             onClick={() => setIsModalOpen(true)}
                             className="mt-2 text-green-600 hover:underline"
                         >
-                            Create your first grow
+                            {t('create_first_grow')}
                         </button>
                     </div>
                 )}
@@ -321,27 +323,27 @@ export const Grows = () => {
             <Modal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                title="Create New Grow"
+                title={t('create_grow')}
             >
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                     <Input
-                        label="Grow Name"
-                        placeholder="e.g. Winter Run 2024"
+                        label={t('grow_name')}
+                        placeholder={t('grow_name_placeholder')}
                         {...register('name')}
                         error={errors.name?.message}
                     />
 
                     <Select
-                        label="Location"
+                        label={t('location')}
                         {...register('location_type')}
                         options={[
-                            { value: 'INDOOR', label: 'Indoor' },
-                            { value: 'OUTDOOR', label: 'Outdoor' }
+                            { value: 'INDOOR', label: t('indoor') },
+                            { value: 'OUTDOOR', label: t('outdoor') }
                         ]}
                     />
 
                     <div className="w-full">
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Notes (Optional)</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('notes_optional')}</label>
                         <textarea
                             {...register('notes')}
                             className="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all h-24 resize-none"
@@ -355,14 +357,14 @@ export const Grows = () => {
                             onClick={() => setIsModalOpen(false)}
                             className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg transition-colors"
                         >
-                            Cancel
+                            {t('cancel')}
                         </button>
                         <button
                             type="submit"
                             disabled={loading}
                             className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
                         >
-                            {loading ? 'Creating...' : 'Create Grow'}
+                            {loading ? t('creating') : t('create_grow')}
                         </button>
                     </div>
                 </form>
