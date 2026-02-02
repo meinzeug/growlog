@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../lib/api';
-import { Plus, Flower2, Filter, Search } from 'lucide-react'; // Added Search
+import { Plus, Flower2, Filter, Search, Pencil, Trash2 } from 'lucide-react'; // Added Search, Pencil, Trash2
 import { Modal } from '../components/ui/Modal';
 import { Input, Select } from '../components/ui/Form';
 import { useForm } from 'react-hook-form';
@@ -34,6 +34,7 @@ export const Plants = () => {
     const [loading, setLoading] = useState(true); // Initial loading state
     const [submitting, setSubmitting] = useState(false);
     const [isTimelineView, setIsTimelineView] = useState(false);
+    const [editingPlant, setEditingPlant] = useState<any>(null);
 
     // Filter States
     const [searchQuery, setSearchQuery] = useState('');
@@ -80,12 +81,42 @@ export const Plants = () => {
         fetchData();
     }, []);
 
+    const deletePlant = async (id: string) => {
+        if (!confirm(t('delete_confirm'))) return;
+        try {
+            await api.delete(`/plants/${id}`);
+            await fetchData();
+        } catch (e) {
+            console.error(e);
+            alert('Failed to delete plant');
+        }
+    };
+
+    const editPlant = (plant: any) => {
+        setEditingPlant(plant);
+        reset({
+            name: plant.name,
+            grow_id: plant.grow_id || '',
+            strain: plant.strain || '',
+            plant_type: plant.plant_type as any,
+            status: plant.status as any,
+            phase: plant.phase as any,
+            start_date: plant.start_date ? plant.start_date.split('T')[0] : ''
+        });
+        setIsModalOpen(true);
+    };
+
     const onSubmit = async (data: FormData) => {
         setSubmitting(true);
         try {
-            await api.post('/plants', data);
+            if (editingPlant) {
+                await api.put(`/plants/${editingPlant.id}`, data);
+            } else {
+                await api.post('/plants', data);
+            }
             await fetchData();
             setIsModalOpen(false);
+            setEditingPlant(null);
             reset();
         } catch (e) {
             console.error(e);
@@ -119,6 +150,7 @@ export const Plants = () => {
                             alert(t('create_first_grow'));
                             return;
                         }
+                        setEditingPlant(null);
                         reset({
                             plant_type: settings.defaultPlantType || 'PHOTOPERIOD',
                             status: 'HEALTHY',
@@ -206,6 +238,27 @@ export const Plants = () => {
                                     <Flower2 className="text-green-800/20 w-24 h-24 absolute bottom-0 right-0 transform translate-x-4 translate-y-4 rotate-12 group-hover:scale-110 transition-transform duration-500" />
 
                                     <Flower2 className="text-green-600 w-16 h-16 relative z-10 drop-shadow-sm" />
+
+                                    <div className="absolute top-3 left-3 flex gap-1 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                editPlant(plant);
+                                            }}
+                                            className="p-1.5 bg-white/90 rounded-lg text-slate-500 hover:text-green-600 shadow-sm border border-slate-100"
+                                        >
+                                            <Pencil size={14} />
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                deletePlant(plant.id);
+                                            }}
+                                            className="p-1.5 bg-white/90 rounded-lg text-slate-500 hover:text-red-500 shadow-sm border border-slate-100"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
 
                                     <div className="absolute top-3 right-3 flex flex-col gap-1 items-end z-20">
                                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-sm backdrop-blur-sm ${plant.status === 'HEALTHY' ? 'bg-green-50/90 text-green-700 border-green-200' :
@@ -301,9 +354,23 @@ export const Plants = () => {
                                         </div>
                                     </div>
 
-                                    <Link to={`/plants/${plant.id}`} className="px-5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:border-green-500 hover:text-green-600 transition-colors shadow-sm">
-                                        {t('view_details')}
-                                    </Link>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => editPlant(plant)}
+                                            className="p-2.5 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-green-600 hover:border-green-500 transition-colors shadow-sm"
+                                        >
+                                            <Pencil size={18} />
+                                        </button>
+                                        <button
+                                            onClick={() => deletePlant(plant.id)}
+                                            className="p-2.5 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-red-500 hover:border-red-500 transition-colors shadow-sm"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
+                                        <Link to={`/plants/${plant.id}`} className="px-5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:border-green-500 hover:text-green-600 transition-colors shadow-sm">
+                                            {t('view_details')}
+                                        </Link>
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -323,6 +390,7 @@ export const Plants = () => {
                                 alert(t('create_first_grow'));
                                 return;
                             }
+                            setEditingPlant(null);
                             reset({
                                 plant_type: settings.defaultPlantType || 'PHOTOPERIOD',
                                 status: 'HEALTHY',
@@ -351,8 +419,12 @@ export const Plants = () => {
 
             <Modal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                title={t('add_plant')}
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setEditingPlant(null);
+                    reset();
+                }}
+                title={editingPlant ? t('edit') + ' ' + t('plants').slice(0, -1) : t('add_plant')}
             >
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                     <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg mb-4">
@@ -449,7 +521,7 @@ export const Plants = () => {
                             disabled={submitting}
                             className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
                         >
-                            {submitting ? t('creating') : t('add_plant')}
+                            {submitting ? t('saving') : (editingPlant ? t('save') : t('add_plant'))}
                         </button>
                     </div>
                 </form>

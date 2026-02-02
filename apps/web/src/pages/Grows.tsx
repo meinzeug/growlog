@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../lib/api';
-import { Plus, Trash2, Sprout, Thermometer, Droplets, Calendar, Home, Sun, Activity, Wind } from 'lucide-react';
+import { Plus, Trash2, Pencil, Sprout, Thermometer, Droplets, Calendar, Home, Sun, Activity, Wind } from 'lucide-react';
 import { Modal } from '../components/ui/Modal';
 import { Input, Select } from '../components/ui/Form';
 import { useForm } from 'react-hook-form';
@@ -35,6 +35,7 @@ export const Grows = () => {
     const [envStats, setEnvStats] = useState<{ temperature: number; humidity: number; co2?: number } | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [editingGrow, setEditingGrow] = useState<any>(null);
 
     const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
         resolver: zodResolver(schema),
@@ -65,9 +66,14 @@ export const Grows = () => {
     const onSubmit = async (data: FormData) => {
         setLoading(true);
         try {
-            await api.post('/grows', data);
+            if (editingGrow) {
+                await api.put(`/grows/${editingGrow.id}`, data);
+            } else {
+                await api.post('/grows', data);
+            }
             await fetchGrows();
             setIsModalOpen(false);
+            setEditingGrow(null);
             reset();
         } catch (e) {
             console.error(e);
@@ -75,6 +81,16 @@ export const Grows = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const editGrow = (grow: any) => {
+        setEditingGrow(grow);
+        reset({
+            name: grow.name,
+            location_type: grow.location_type || 'INDOOR',
+            notes: grow.notes || ''
+        });
+        setIsModalOpen(true);
     };
 
     const deleteGrow = async (id: string) => {
@@ -97,6 +113,7 @@ export const Grows = () => {
                 </div>
                 <button
                     onClick={() => {
+                        setEditingGrow(null);
                         reset({
                             name: '',
                             location_type: settings.defaultGrowLocation || 'INDOOR',
@@ -231,16 +248,28 @@ export const Grows = () => {
                                             </div>
                                         </div>
 
-                                        <button
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                deleteGrow(grow.id);
-                                            }}
-                                            className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
-                                            title={t('delete')}
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
+                                        <div className="flex items-center gap-1">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    editGrow(grow);
+                                                }}
+                                                className="p-2 text-slate-300 hover:text-green-600 hover:bg-green-50 rounded-full transition-colors"
+                                                title={t('edit')}
+                                            >
+                                                <Pencil size={18} />
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    deleteGrow(grow.id);
+                                                }}
+                                                className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                                                title={t('delete')}
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <div className="grid grid-cols-3 gap-4 mb-6">
@@ -367,8 +396,12 @@ export const Grows = () => {
 
             <Modal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                title={t('create_grow')}
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setEditingGrow(null);
+                    reset();
+                }}
+                title={editingGrow ? t('edit') + ' ' + t('grows').slice(0, -1) : t('create_grow')}
             >
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                     <Input
@@ -409,7 +442,7 @@ export const Grows = () => {
                             disabled={loading}
                             className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
                         >
-                            {loading ? t('creating') : t('create_grow')}
+                            {loading ? t('saving') : (editingGrow ? t('save') : t('create_grow'))}
                         </button>
                     </div>
                 </form>
