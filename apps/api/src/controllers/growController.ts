@@ -92,6 +92,31 @@ router.get('/grows/:id', authenticateToken, async (req: Request, res: Response) 
     res.json(grow);
 });
 
+router.put('/grows/:id', authenticateToken, async (req: Request, res: Response) => {
+    const userId = (req as AuthRequest).user?.id!;
+    const exists = await prisma.grow.count({ where: { id: req.params.id, owner_user_id: userId as string } });
+    if (!exists) return res.status(404).json({ error: 'Grow not found' });
+
+    try {
+        // We reuse createGrowSchema but partial? Or just simple validation.
+        // Grows.tsx sends name, location_type, notes.
+        const { name, location_type, notes } = req.body;
+
+        const grow = await prisma.grow.update({
+            where: { id: req.params.id },
+            data: {
+                name,
+                location_type,
+                notes
+            }
+        });
+        res.json(grow);
+    } catch (e) {
+        console.error(e);
+        res.status(400).json({ error: 'Update failed' });
+    }
+});
+
 router.delete('/grows/:id', authenticateToken, async (req: Request, res: Response) => {
     const userId = (req as AuthRequest).user?.id!;
     // Verify ownership

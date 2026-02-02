@@ -138,6 +138,47 @@ router.post('/plants/:id/phase', authenticateToken, async (req: Request, res: Re
     res.json(updated);
 });
 
+router.put('/plants/:id', authenticateToken, async (req: Request, res: Response) => {
+    const userId = (req as AuthRequest).user?.id!;
+    const exists = await prisma.plant.count({ where: { id: req.params.id, owner_user_id: userId as string } });
+    if (!exists) return res.status(404).json({ error: 'Plant not found' });
+
+    try {
+        const data = req.body;
+        // Transform dates
+        if (data.start_date) data.start_date = new Date(data.start_date);
+        if (data.phase_started_at) data.phase_started_at = new Date(data.phase_started_at);
+
+        // Remove ID/grow_id from body if present to avoid errors or hijacking
+        delete data.id;
+        delete data.grow_id; // Usually we don't move plants between grows via edit, but if we do, we need to check ownership of target grow. 
+        // For now, let's allow updating fields but be careful (Plants.tsx sends grow_id)
+
+        const plant = await prisma.plant.update({
+            where: { id: req.params.id },
+            data
+        });
+        res.json(plant);
+    } catch (error: any) {
+        console.error(error);
+        res.status(400).json({ error: 'Update failed', details: error.message });
+    }
+});
+
+router.delete('/plants/:id', authenticateToken, async (req: Request, res: Response) => {
+    const userId = (req as AuthRequest).user?.id!;
+    const count = await prisma.plant.count({ where: { id: req.params.id, owner_user_id: userId as string } });
+    if (count === 0) return res.status(404).json({ error: 'Plant not found' });
+
+    try {
+        await prisma.plant.delete({ where: { id: req.params.id } });
+        res.json({ message: 'Deleted' });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ error: 'Failed to delete plant' });
+    }
+});
+
 
 // --- Logs ---
 
