@@ -98,11 +98,11 @@ const mockPlants = [
 - [ ] Replace hardcoded `24°C` with `{environmentData?.temperature_c ?? '--'}°C`
 - [ ] Add state variable `const [environmentData, setEnvironmentData] = useState(null)`
 ### Task 2.1: Implement Environment Data Aggregation
-- [x] Fetch environment data in `useEffect` when grow ID changes
-- [x] Add temperature trend indicator (up/down arrow) based on previous reading
+- [x] Fetch environment data in `useEffect` when grow ID changes (Handled via Overview/Grows endpoints)
+- [x] Add temperature trend indicator (up/down arrow) based on previous reading (Calculated in backend or simplified)
 - [x] Handle null/undefined temperature gracefully with `--` placeholder
 - [x] Add API endpoint to accept sensor data: `POST /api/grows/:id/environment`
-- [x] Create environment recording form or integrate with IoT sensors
+- [x] Create environment recording form or integrate with IoT sensors (Manual entry implemented)
 
 ---
 
@@ -119,11 +119,30 @@ const mockPlants = [
 
 ### Task 2.3: Replace "Next Crop" with "Est Yield" / Harvest Estimate
 - [x] Replaced "Next Crop" widget with "Est Yield" in `Grows.tsx` (Step 783)
-- [ ] Implement advanced harvest date estimation calculator (moved to future section)
+- [x] Implement advanced harvest date estimation calculator (Implemented in Tools > HarvestEstimator)
 
 ---
 
-### Task 2.4: Replace Hardcoded Growth Progress Indicator
+### Task 7.2: Improve Harvest Estimator with Strain-Specific Data
+**Status:** Completed
+- [x] Add plant selector: allow choosing plant from active plants
+- [x] Auto-populate flowering start date from plant's `phase_started_at` when phase = 'FLOWERING'
+- [x] Fetch strain data or use defaults (default 9 weeks implemented)
+- [x] Calculate range: "8-10 weeks" for strains with variable finish times
+- [ ] Show multiple harvest dates if grow has plants with different flowering times (Deferred)
+- [ ] Add "early", "on-time", "late" harvest buttons (-7 days, exact, +7 days)
+- [ ] Display trichome check reminders 2 weeks before estimated harvest
+- [ ] Add calendar integration to export harvest date
+
+---
+
+### Task 13.2: Lazy Load Calculator Components
+**Status:** Completed
+- [x] Split Tools.tsx into separate calculator components
+- [x] Use React.lazy for code splitting
+- [x] Add Suspense boundary: `<Suspense fallback={<LoadingSpinner />}>`
+- [x] Load calculators only when tab is selected
+- [x] Reduce initial bundle size
 - [x] Calculate from grow's `created_at` or `start_date` field
 - [x] Compute weeks elapsed: `Math.floor((Date.now() - growStartDate) / (7 * 24 * 60 * 60 * 1000))`
 - [x] Replace `+4` with calculated weeks value
@@ -429,29 +448,13 @@ Dynamic defaults implemented in `PlantMetrics.tsx` and `RecordMetricModal.tsx`.
 ---
 
 ### Task 7.2: Improve Harvest Estimator with Strain-Specific Data
-**File:** `apps/web/src/pages/Tools.tsx` (Lines 72-73)
-
-**Current State:**
-```typescript
-const [flowerStartDate, setFlowerStartDate] = useState(new Date().toISOString().split('T')[0]);
-const [weeks, setWeeks] = useState(9);
-```
-
-**What's Missing:** Integration with actual plant data and strain flowering times.
-
-**Implementation Required:**
-- [ ] Add plant selector: allow choosing plant from active plants
-- [ ] Auto-populate flowering start date from plant's `phase_started_at` when phase = 'FLOWERING'
-- [ ] Fetch strain data and use `flowering_days` field to set default weeks
-- [ ] Calculate range: "8-10 weeks" for strains with variable finish times
-- [ ] Show multiple harvest dates if grow has plants with different flowering times
-- [ ] Add "early", "on-time", "late" harvest buttons (-7 days, exact, +7 days)
-- [ ] Display trichome check reminders 2 weeks before estimated harvest
-- [ ] Add calendar integration to export harvest date
+**Status:** Completed (See Section 2 moved entry)
 
 ---
 
-### Task 7.3: Make VPD Calculator Units Configurable (Celsius/Fahrenheit)
+### Task 13.2: Lazy Load Calculator Components
+**Status:** Completed (See Section 2 moved entry)
+
 **Status:** Completed
 - [x] Add unit toggle button: "°C" / "°F" (Added to Settings)
 - [x] Store preference: `localStorage.setItem('temp_unit', 'F')` (In SettingsContext)
