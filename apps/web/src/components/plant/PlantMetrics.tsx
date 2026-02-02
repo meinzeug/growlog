@@ -27,6 +27,7 @@ export const PlantMetrics = ({ plantId }: PlantMetricsProps) => {
     const { register, handleSubmit, reset, watch, setValue } = useForm({
         defaultValues: {
             height_cm: 0,
+            node_count: 0,
             ph: 6.0,          // Standard hydro/soil pH
             ec: 1.0,          // Mild nutrient solution
             temperature_c: 24, // Optimal indoor temp
@@ -75,6 +76,7 @@ export const PlantMetrics = ({ plantId }: PlantMetricsProps) => {
             const latest = metrics[metrics.length - 1];
             if (latest) {
                 setValue('height_cm', latest.height_cm ? Number(latest.height_cm) + 1 : 0);
+                setValue('node_count', latest.node_count ? Number(latest.node_count) : 0);
                 setValue('ph', latest.ph ? Number(latest.ph) : 6.0);
                 setValue('ec', latest.ec ? Number(latest.ec) : 1.0);
                 setValue('temperature_c', latest.temperature_c ? Number(latest.temperature_c) : 24);
@@ -185,6 +187,7 @@ export const PlantMetrics = ({ plantId }: PlantMetricsProps) => {
                                     <tr>
                                         <th className="px-6 py-3">{t('date')}</th>
                                         <th className="px-6 py-3">{t('height')}</th>
+                                        <th className="px-6 py-3">{t('nodes')}</th>
                                         <th className="px-6 py-3">{t('ph_level')}</th>
                                         <th className="px-6 py-3">{t('ec_ppm')}</th>
                                         <th className="px-6 py-3">{t('environment') || 'Env'}</th>
@@ -198,6 +201,7 @@ export const PlantMetrics = ({ plantId }: PlantMetricsProps) => {
                                                 {format(new Date(metric.recorded_at), 'MMM d')}
                                             </td>
                                             <td className="px-6 py-3">{metric.height_cm ? `${metric.height_cm}cm` : '-'}</td>
+                                            <td className="px-6 py-3">{metric.node_count || '-'}</td>
                                             <td className="px-6 py-3">{metric.ph || '-'}</td>
                                             <td className="px-6 py-3">{metric.ec || '-'}</td>
                                             <td className="px-6 py-3">
@@ -229,6 +233,18 @@ export const PlantMetrics = ({ plantId }: PlantMetricsProps) => {
                         unit="cm"
                         icon={Ruler}
                         colorClass="bg-green-600"
+                    />
+
+                    <SliderControl
+                        label={t('nodes')}
+                        value={watch('node_count')}
+                        onChange={(v) => setValue('node_count', v)}
+                        min={0}
+                        max={50}
+                        step={1}
+                        unit={t('pairs')}
+                        icon={Activity}
+                        colorClass="bg-teal-500"
                     />
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

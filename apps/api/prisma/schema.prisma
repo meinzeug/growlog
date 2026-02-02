@@ -165,6 +165,9 @@ model Plant {
   phase          PlantPhase    @default(GERMINATION)
   phase_started_at DateTime?   @db.Date
   status         PlantStatus   @default(HEALTHY)
+  health_issues  String[]
+  phenotype      String?
+  breeder        String?
   estimated_yield_grams Float?
   notes          String?
   created_at     DateTime      @default(now())
@@ -233,6 +236,7 @@ model PlantMetric {
   plant_id      String
   recorded_at   DateTime @default(now())
   height_cm     Float?
+  node_count    Int?
   ph            Float?
   ec            Float?
   temperature_c Float?

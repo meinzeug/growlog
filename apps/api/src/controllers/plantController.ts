@@ -260,11 +260,12 @@ router.post('/plants/:id/metrics', authenticateToken, async (req: Request, res: 
     }
 
     try {
-        const { height_cm, ph, ec, temperature_c, humidity_pct, light_ppfd, notes, recorded_at } = req.body;
+        const { height_cm, node_count, ph, ec, temperature_c, humidity_pct, light_ppfd, notes, recorded_at } = req.body;
         const metric = await prisma.plantMetric.create({
             data: {
                 plant_id: req.params.id,
                 height_cm: height_cm ? parseFloat(height_cm) : undefined,
+                node_count: node_count ? parseInt(node_count) : undefined,
                 ph: ph ? parseFloat(ph) : undefined,
                 ec: ec ? parseFloat(ec) : undefined,
                 temperature_c: temperature_c ? parseFloat(temperature_c) : undefined,
