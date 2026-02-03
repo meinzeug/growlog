@@ -200,6 +200,29 @@ router.get('/grows/:id/environment/latest', authenticateToken, async (req: Reque
     res.json(metric || null);
 });
 
+// GET /grows/:id/environment/history
+router.get('/grows/:id/environment/history', authenticateToken, async (req: Request, res: Response) => {
+    const userId = (req as AuthRequest).user?.id!;
+    const count = await prisma.grow.count({ where: { id: req.params.id, owner_user_id: userId } });
+    if (!count) return res.status(404).json({ error: 'Grow not found' });
+
+    try {
+        const limit = parseInt(req.query.limit as string) || 168; // Default 1 week of hourly data (approx)
+
+        const metrics = await prisma.environmentMetric.findMany({
+            where: { grow_id: req.params.id },
+            orderBy: { recorded_at: 'desc' },
+            take: limit
+        });
+
+        // Return in ascending order for charts
+        res.json(metrics.reverse());
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ error: 'Failed to fetch history' });
+    }
+});
+
 // POST /grows/:id/environment
 router.post('/grows/:id/environment', authenticateToken, async (req: Request, res: Response) => {
     const userId = (req as AuthRequest).user?.id!;

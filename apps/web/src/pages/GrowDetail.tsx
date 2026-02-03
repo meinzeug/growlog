@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../lib/api';
-import { ArrowLeft, Plus, Thermometer, Droplets, Trash2, Sprout, Wind } from 'lucide-react';
+import { ArrowLeft, Plus, Thermometer, Droplets, Trash2, Sprout, Wind, Activity } from 'lucide-react';
 import { Modal } from '../components/ui/Modal';
 import { Input, Select } from '../components/ui/Form';
 import { useForm } from 'react-hook-form';
@@ -9,12 +9,16 @@ import { clsx } from 'clsx';
 import { format } from 'date-fns';
 import { useLanguage } from '../context/LanguageContext';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
+import { SkeletonChart } from '../components/ui/Skeletons';
+
+const EnvironmentChart = lazy(() => import('../components/dashboard/EnvironmentChart').then(m => ({ default: m.EnvironmentChart })));
 
 export const GrowDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { t } = useLanguage();
     const [grow, setGrow] = useState<any>(null);
+    const [history, setHistory] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isEnvModalOpen, setIsEnvModalOpen] = useState(false);
 
@@ -34,8 +38,20 @@ export const GrowDetail = () => {
         }
     };
 
+    const fetchHistory = async () => {
+        try {
+            const res = await api.get(`/grows/${id}/environment/history`);
+            setHistory(res.data);
+        } catch (e) {
+            console.error("Failed to fetch environment history", e);
+        }
+    };
+
     useEffect(() => {
-        if (id) fetchGrow();
+        if (id) {
+            fetchGrow();
+            fetchHistory();
+        }
     }, [id]);
 
     const onDelete = async () => {
@@ -75,6 +91,8 @@ export const GrowDetail = () => {
     };
 
     if (loading) return <LoadingSpinner fullScreen />;
+
+
     if (!grow) return null;
 
     return (
@@ -100,13 +118,37 @@ export const GrowDetail = () => {
                         </p>
                     </div>
                 </div>
-                <button
-                    onClick={onDelete}
-                    className="flex items-center space-x-2 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg transition-colors border border-transparent hover:border-red-100"
-                >
-                    <Trash2 size={18} />
-                    <span>{t('delete_project')}</span>
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setIsEnvModalOpen(true)}
+                        className="flex items-center space-x-2 text-slate-600 hover:bg-slate-100 px-4 py-2 rounded-lg transition-colors"
+                    >
+                        <Activity size={18} />
+                        <span>{t('log_environment') || 'Log Env'}</span>
+                    </button>
+                    <button
+                        onClick={onDelete}
+                        className="flex items-center space-x-2 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg transition-colors border border-transparent hover:border-red-100"
+                    >
+                        <Trash2 size={18} />
+                        <span>{t('delete_project')}</span>
+                    </button>
+                </div>
+            </div>
+
+            {/* Environment Chart Section */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                        <Activity size={20} className="text-orange-500" />
+                        {t('environment_history') || 'Environment Trends'}
+                    </h3>
+                </div>
+                <div className="h-[300px] w-full">
+                    <Suspense fallback={<SkeletonChart />}>
+                        <EnvironmentChart data={history} onEmptyAction={() => setIsEnvModalOpen(true)} />
+                    </Suspense>
+                </div>
             </div>
 
             {/* Content Grid */}

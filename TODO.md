@@ -242,11 +242,6 @@ const DashboardSkeleton = () => (
 - [x] Add error boundary component for failed data fetches
 - [x] Create reusable `<SkeletonCard>`, `<SkeletonChart>` components
 - [x] Add retry button in error state
-- [ ] Implement timeout: show error message if data takes >10 seconds
-- [ ] Use React.Suspense for chart components if possible
-
----
-
 ### Task 3.3: Replace Empty Dashboard Stats Initialization
 **File:** `apps/web/src/pages/Dashboard.tsx` (Lines 44-45)
 
