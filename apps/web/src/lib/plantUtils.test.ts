@@ -60,4 +60,29 @@ describe('calculatePlantProgress', () => {
             expect(calculatePlantProgress('FLOWERING', 'PHOTOPERIOD', start.toISOString())).toBe(70);
         });
     });
+    describe('Custom Configuration', () => {
+        const config = {
+            germination: 7,
+            vegetative: 30,
+            flowering: 60,
+            drying: 7,
+            autoflower: 60
+        };
+
+        it('uses custom autoflower cycle', () => {
+            // 30 days old = 50% of 60 days
+            const start = new Date(today);
+            start.setDate(today.getDate() - 30);
+            expect(calculatePlantProgress('VEGETATIVE', 'AUTOFLOWER', start.toISOString(), config)).toBe(50);
+        });
+
+        it('uses custom photoperiod cycle', () => {
+            // Veg: starts after 7 days (germination).
+            // Age = 7 + 15 = 22 days.
+            // Veg progress: (15 / 30) * 40 = 20. Total = 10 + 20 = 30%.
+            const start = new Date(today);
+            start.setDate(today.getDate() - 22);
+            expect(calculatePlantProgress('VEGETATIVE', 'PHOTOPERIOD', start.toISOString(), config)).toBe(30);
+        });
+    });
 });

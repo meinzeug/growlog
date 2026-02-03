@@ -227,7 +227,7 @@ export const Plants = () => {
                     {filteredPlants.map((plant) => {
                         const age = plant.start_date ? Math.floor((new Date().getTime() - new Date(plant.start_date).getTime()) / (1000 * 60 * 60 * 24)) : 0;
                         // Dynamic Progress Calculation
-                        const progress = Math.max(0, calculatePlantProgress(plant.phase, plant.plant_type, plant.start_date));
+                        const progress = Math.max(0, calculatePlantProgress(plant.phase, plant.plant_type, plant.start_date, settings.phaseDurations));
 
                         return (
                             <Link to={`/plants/${plant.id}`} key={plant.id} className="bg-white overflow-hidden rounded-2xl shadow-sm border border-slate-100 hover:shadow-lg transition-all duration-300 group flex flex-col hover:-translate-y-1 relative">

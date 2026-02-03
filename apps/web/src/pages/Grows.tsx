@@ -211,7 +211,7 @@ export const Grows = () => {
 
                     // Real Progress based on Plant Phases using utility
                     const totalProgress = grow.plants?.reduce((sum: number, p: any) =>
-                        sum + calculatePlantProgress(p.phase, p.plant_type, p.start_date || p.created_at), 0) || 0;
+                        sum + calculatePlantProgress(p.phase, p.plant_type, p.start_date || p.created_at, settings.phaseDurations), 0) || 0;
 
                     const progress = plantCount > 0 ? totalProgress / plantCount : 0;
 

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { type PhaseDurations, DEFAULT_PHASE_DURATIONS } from '../lib/plantUtils';
 
 interface Settings {
     defaultWaterAmount: number;
@@ -11,6 +12,7 @@ interface Settings {
     defaultReminderTime: number;
     emailAlerts: boolean;
     temperatureUnit: 'C' | 'F';
+    phaseDurations: PhaseDurations;
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -22,7 +24,8 @@ const DEFAULT_SETTINGS: Settings = {
     defaultGrowLocation: 'INDOOR',
     defaultReminderTime: 15,
     emailAlerts: true,
-    temperatureUnit: 'C'
+    temperatureUnit: 'C',
+    phaseDurations: DEFAULT_PHASE_DURATIONS
 };
 
 interface SettingsContextType {

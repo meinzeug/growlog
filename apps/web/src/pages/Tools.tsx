@@ -67,6 +67,34 @@ const SettingsDialog = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                     ]}
                 />
                 <div className="pt-2 border-t border-slate-100">
+                    <h3 className="font-semibold text-sm text-slate-900 mb-3">{t('phase_timelines') || 'Phase Timelines (Days)'}</h3>
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                        <Input
+                            label={t('germination')}
+                            type="number"
+                            value={localSettings.phaseDurations?.germination ?? 14}
+                            onChange={e => setLocalSettings({ ...localSettings, phaseDurations: { ...localSettings.phaseDurations, germination: Number(e.target.value) } })}
+                        />
+                        <Input
+                            label={t('vegetative')}
+                            type="number"
+                            value={localSettings.phaseDurations?.vegetative ?? 60}
+                            onChange={e => setLocalSettings({ ...localSettings, phaseDurations: { ...localSettings.phaseDurations, vegetative: Number(e.target.value) } })}
+                        />
+                        <Input
+                            label={t('flowering')}
+                            type="number"
+                            value={localSettings.phaseDurations?.flowering ?? 70}
+                            onChange={e => setLocalSettings({ ...localSettings, phaseDurations: { ...localSettings.phaseDurations, flowering: Number(e.target.value) } })}
+                        />
+                        <Input
+                            label={t('autoflower')}
+                            type="number"
+                            value={localSettings.phaseDurations?.autoflower ?? 90}
+                            onChange={e => setLocalSettings({ ...localSettings, phaseDurations: { ...localSettings.phaseDurations, autoflower: Number(e.target.value) } })}
+                        />
+                    </div>
+
                     <button
                         onClick={() => {
                             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(localSettings, null, 2));
@@ -77,7 +105,7 @@ const SettingsDialog = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
                             downloadAnchorNode.click();
                             downloadAnchorNode.remove();
                         }}
-                        className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700"
+                        className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 mt-4"
                     >
                         <Download size={16} />
                         {t('export_settings') || 'Export Settings'}

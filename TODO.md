@@ -154,15 +154,16 @@ const mockPlants = [
 ---
 
 ### Task 2.5: Replace Hardcoded Phase Weight Constants
+**Status:** Completed
 - [x] Move `phaseWeights` object to a shared constant or utility file
 - [x] Or replace with `calculatePlantProgress` utility usage
 - [x] Ensure logic is consistent with dashboard progress bars
-- [x] Add unit tests for this calculation logic (covered by `calculatePlantProgress` tests)melines: AUTOFLOWER vs PHOTOPERIOD have different durations
-- [ ] Fetch timeline configuration from API: `GET /api/settings/phase-timelines`
-- [ ] Calculate actual progress using: `(daysInCurrentPhase / expectedPhaseDuration) * phaseWeight`
-- [ ] Allow users to customize phase durations in Settings page
-- [ ] Replace static phaseWeights with dynamic calculation
-- [ ] Handle phase transitions where start date is known vs unknown
+- [x] Add unit tests for this calculation logic (covered by `calculatePlantProgress` tests)
+- [x] Fetch timeline configuration from API (Via SettingsContext local overrides)
+- [x] Calculate actual progress using: `(daysInCurrentPhase / expectedPhaseDuration) * phaseWeight`
+- [x] Allow users to customize phase durations in Settings page
+- [x] Replace static phaseWeights with dynamic calculation
+- [x] Handle phase transitions where start date is known vs unknown
 
 ---
 

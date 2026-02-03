@@ -15,6 +15,7 @@
  * @param startDate The date the plant was started
  * @returns A number between 0 and 100 representing the progress percentage
  */
+
 export const PHASE_THRESHOLDS = {
     GERMINATION: 10,
     VEGETATIVE: 50,
@@ -23,39 +24,63 @@ export const PHASE_THRESHOLDS = {
     FINISHED: 100
 };
 
+export interface PhaseDurations {
+    germination: number;
+    vegetative: number;
+    flowering: number;
+    drying: number;
+    autoflower: number;
+}
+
+export const DEFAULT_PHASE_DURATIONS: PhaseDurations = {
+    germination: 14,
+    vegetative: 60,
+    flowering: 70,
+    drying: 10,
+    autoflower: 90
+};
+
 export const calculatePlantProgress = (
     phase: string,
     plantType: string,
-    startDate: string | Date | undefined
+    startDate: string | Date | undefined,
+    config: PhaseDurations = DEFAULT_PHASE_DURATIONS
 ): number => {
     if (!startDate) return 0;
 
-    // Normalize startDate to Date object if string, though usually passed as timestamp or ISO string depending on backend
+    // Normalize startDate to Date object
     const start = new Date(startDate);
     const age = Math.floor((new Date().getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
 
     if (phase === 'FINISHED' || phase === 'CURED') return PHASE_THRESHOLDS.FINISHED;
     if (phase === 'DRYING') return PHASE_THRESHOLDS.DRYING;
 
-    // Autoflowers have a somewhat fixed lifecycle (approx 90-100 days)
+    // Autoflowers have a somewhat fixed lifecycle
     if (plantType === 'AUTOFLOWER') {
-        return Math.min(100, Math.round((age / 90) * 100)); // Assumes 90 day cycle
+        return Math.min(100, Math.round((age / config.autoflower) * 100));
     }
 
     // Photoperiods depend heavily on the phase
     switch (phase) {
         case 'GERMINATION':
-            // Assumes 2 weeks max for germination phase
-            return Math.min(PHASE_THRESHOLDS.GERMINATION, Math.round((age / 14) * PHASE_THRESHOLDS.GERMINATION));
+            // Starts at 0, goes to GERM threshold
+            return Math.min(PHASE_THRESHOLDS.GERMINATION, Math.round((age / config.germination) * PHASE_THRESHOLDS.GERMINATION));
         case 'VEGETATIVE':
-            // Assumes approx 2 months veg (very variable, but good baseline)
-            // Starts at GERMINATION end (10%), adds up to VEGETATIVE end (50%)
+            // Starts at GERMINATION end, adds up to VEGETATIVE end
+            // We assume age is total age. 
+            // In vegetative phase, effective veg days = age - germination_days
+            const vegDays = Math.max(0, age - config.germination);
             const vegRange = PHASE_THRESHOLDS.VEGETATIVE - PHASE_THRESHOLDS.GERMINATION;
-            return Math.min(PHASE_THRESHOLDS.VEGETATIVE, PHASE_THRESHOLDS.GERMINATION + Math.round(((age - 14) / 60) * vegRange));
+            return Math.min(PHASE_THRESHOLDS.VEGETATIVE, PHASE_THRESHOLDS.GERMINATION + Math.round((vegDays / config.vegetative) * vegRange));
         case 'FLOWERING':
-            // Starts at VEGETATIVE end (50%), adds up to FLOWERING end (90%)
+            // Starts at VEGETATIVE end, adds up to FLOWERING end
+            // Effective flower days = age - germination_days - vegetative_days
+            // NOTE: This assumes transitions happened exactly at those day counts, which might not be true if user manually changed phases.
+            // Ideally we'd use `phase_started_at` for the current phase.
+            // But preserving signature for now, we estimate based on total age minus previous phases.
+            const flowerDays = Math.max(0, age - config.germination - config.vegetative);
             const flowerRange = PHASE_THRESHOLDS.FLOWERING - PHASE_THRESHOLDS.VEGETATIVE;
-            return Math.min(PHASE_THRESHOLDS.FLOWERING, PHASE_THRESHOLDS.VEGETATIVE + Math.round(((age - 74) / 70) * flowerRange));
+            return Math.min(PHASE_THRESHOLDS.FLOWERING, PHASE_THRESHOLDS.VEGETATIVE + Math.round((flowerDays / config.flowering) * flowerRange));
         default:
             return 0;
     }
